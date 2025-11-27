@@ -1,0 +1,112 @@
+{
+  "identifier" : "Products",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "6.00",
+      "familyShareable" : false,
+      "identifier" : "com.worldcreat.starter",
+      "localizations" : [
+        {
+          "description" : "9 000 coins hebdomadaires",
+          "displayName" : "Starter",
+          "locale" : "fr_FR"
+        }
+      ],
+      "productID" : "com.worldcreat.starter",
+      "referenceName" : "Starter",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "15.00",
+      "familyShareable" : false,
+      "identifier" : "com.worldcreat.pro",
+      "localizations" : [
+        {
+          "description" : "24 000 coins hebdomadaires",
+          "displayName" : "Pro",
+          "locale" : "fr_FR"
+        }
+      ],
+      "productID" : "com.worldcreat.pro",
+      "referenceName" : "Pro",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "30.00",
+      "familyShareable" : false,
+      "identifier" : "com.worldcreat.studio",
+      "localizations" : [
+        {
+          "description" : "50 000 coins hebdomadaires",
+          "displayName" : "Studio",
+          "locale" : "fr_FR"
+        }
+      ],
+      "productID" : "com.worldcreat.studio",
+      "referenceName" : "Studio",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+      "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}
+
+

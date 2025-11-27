@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		3DDCC0832ED0D29700655304 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3DDCC0822ED0D29700655304 /* Assets.xcassets */; };
+		3DDCC0892ED1F25900655304 /* texte_en_video.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 3DDCC0882ED1F25900655304 /* texte_en_video.mp4 */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		3DDCBFE12ECF89EF00655304 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +32,8 @@
 		3DDCBFD22ECF89ED00655304 /* World-Creat 2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "World-Creat 2.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3DDCBFE02ECF89EF00655304 /* World-Creat 2Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "World-Creat 2Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3DDCBFEA2ECF89EF00655304 /* World-Creat 2UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "World-Creat 2UITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3DDCC0822ED0D29700655304 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		3DDCC0882ED1F25900655304 /* texte_en_video.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = texte_en_video.mp4; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -75,6 +82,8 @@
 		3DDCBFC92ECF89ED00655304 = {
 			isa = PBXGroup;
 			children = (
+				3DDCC0882ED1F25900655304 /* texte_en_video.mp4 */,
+				3DDCC0822ED0D29700655304 /* Assets.xcassets */,
 				3DDCBFD42ECF89ED00655304 /* World-Creat 2 */,
 				3DDCBFE32ECF89EF00655304 /* World-Creat 2Tests */,
 				3DDCBFED2ECF89EF00655304 /* World-Creat 2UITests */,
@@ -212,6 +221,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3DDCC0892ED1F25900655304 /* texte_en_video.mp4 in Resources */,
+				3DDCC0832ED0D29700655304 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -392,7 +403,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "World-Creat 2/World_Creat_2.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 5D6QFURCG8;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -412,7 +423,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.3;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "pmeplus.World-Creat-2";
+				PRODUCT_BUNDLE_IDENTIFIER = app.lovable.db223932b04a46c4aad3d4a1543b8d47;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -431,7 +442,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "World-Creat 2/World_Creat_2.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 5D6QFURCG8;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -451,7 +462,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.3;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "pmeplus.World-Creat-2";
+				PRODUCT_BUNDLE_IDENTIFIER = app.lovable.db223932b04a46c4aad3d4a1543b8d47;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
