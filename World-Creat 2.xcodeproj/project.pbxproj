@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		3DDCC0832ED0D29700655304 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3DDCC0822ED0D29700655304 /* Assets.xcassets */; };
 		3DDCC0892ED1F25900655304 /* texte_en_video.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 3DDCC0882ED1F25900655304 /* texte_en_video.mp4 */; };
+		5C84989E2ED8DA7300846A0E /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C84989D2ED8DA7300846A0E /* StoreKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -34,6 +35,7 @@
 		3DDCBFEA2ECF89EF00655304 /* World-Creat 2UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "World-Creat 2UITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3DDCC0822ED0D29700655304 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3DDCC0882ED1F25900655304 /* texte_en_video.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = texte_en_video.mp4; sourceTree = "<group>"; };
+		5C84989D2ED8DA7300846A0E /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -59,6 +61,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5C84989E2ED8DA7300846A0E /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -87,6 +90,7 @@
 				3DDCBFD42ECF89ED00655304 /* World-Creat 2 */,
 				3DDCBFE32ECF89EF00655304 /* World-Creat 2Tests */,
 				3DDCBFED2ECF89EF00655304 /* World-Creat 2UITests */,
+				5C84989C2ED8DA7300846A0E /* Frameworks */,
 				3DDCBFD32ECF89ED00655304 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -99,6 +103,14 @@
 				3DDCBFEA2ECF89EF00655304 /* World-Creat 2UITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		5C84989C2ED8DA7300846A0E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				5C84989D2ED8DA7300846A0E /* StoreKit.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -408,6 +420,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "World Creat a besoin d'ajouter des photos à votre album.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "World Creat a besoin d'accédez à vos photos.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -447,6 +461,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "World Creat a besoin d'ajouter des photos à votre album.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "World Creat a besoin d'accédez à vos photos.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

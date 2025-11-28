@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AVKit
 
 struct ProfileView: View {
     @StateObject private var appState = AppState.shared
@@ -65,7 +66,8 @@ struct ProfileView: View {
                                     .font(.system(size: 14))
                                     .foregroundColor(.white.opacity(0.7))
                                 
-                                Text(appState.userEmail ?? appState.userName ?? "Utilisateur")
+                                Text(appState.userEmail?.isEmpty == false ? appState.userEmail! : (appState.userName?.isEmpty == false ? appState.userName! : "Utilisateur"))
+                                    .textSelection(.enabled)
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundColor(.white)
                                     .lineLimit(1)
@@ -220,50 +222,75 @@ struct ProfileView: View {
                 .cornerRadius(12)
                 .padding(.horizontal, 20)
                 
-                // Section Historique améliorée
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack {
-                        Text("Historique")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(.white)
-                        Spacer()
-                        if !appState.generationHistory.isEmpty {
-                            Text("\(appState.generationHistory.count) créations")
-                                .font(.system(size: 14))
-                                .foregroundColor(.white.opacity(0.6))
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    
-                    if appState.generationHistory.isEmpty {
-                        VStack(spacing: 16) {
-                            Image(systemName: "tray")
-                                .font(.system(size: 48))
-                                .foregroundColor(.white.opacity(0.3))
-                            Text("Aucune création pour le moment")
-                                .font(.system(size: 16))
-                                .foregroundColor(.white.opacity(0.5))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 60)
-                    } else {
-                        let filteredHistory = appState.generationHistory.filter { item in
-                            switch selectedContentType {
-                            case .image: return item.type == .image
-                            case .video: return item.type == .video
-                            }
-                        }
-                        
-                        LazyVGrid(columns: [
-                            GridItem(.flexible(), spacing: 12),
-                            GridItem(.flexible(), spacing: 12),
-                            GridItem(.flexible(), spacing: 12)
-                        ], spacing: 12) {
-                            ForEach(filteredHistory) { item in
-                                ProfileHistoryGridCard(item: item)
+                // Section Historique améliorée (uniquement si connecté)
+                if appState.isAuthenticated {
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Text("Historique")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.white)
+                            Spacer()
+                            if !appState.generationHistory.isEmpty {
+                                Text("\(appState.generationHistory.count) créations")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.white.opacity(0.6))
                             }
                         }
                         .padding(.horizontal, 20)
+                        
+                        if appState.generationHistory.isEmpty {
+                            VStack(spacing: 16) {
+                                Image(systemName: "tray")
+                                    .font(.system(size: 48))
+                                    .foregroundColor(.white.opacity(0.3))
+                                Text("Aucune création pour le moment")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 60)
+                        } else {
+                            let filteredHistory = appState.generationHistory.filter { item in
+                                switch selectedContentType {
+                                case .image: return item.type == .image
+                                case .video: return item.type == .video
+                                }
+                            }
+                            
+                            LazyVGrid(columns: [
+                                GridItem(.flexible(), spacing: 12),
+                                GridItem(.flexible(), spacing: 12),
+                                GridItem(.flexible(), spacing: 12)
+                            ], spacing: 12) {
+                                ForEach(filteredHistory) { item in
+                                    ProfileHistoryGridCard(item: item)
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                        }
+                    }
+                } else {
+                    // Message si non connecté
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Text("Historique")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.white)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        
+                        VStack(spacing: 16) {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 48))
+                                .foregroundColor(.white.opacity(0.3))
+                            Text("Connectez-vous pour voir votre historique")
+                                .font(.system(size: 16))
+                                .foregroundColor(.white.opacity(0.5))
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 60)
                     }
                 }
                 
@@ -316,8 +343,23 @@ struct ProfileHistoryGridCard: View {
                                 }
                             }
                         } else {
-                            // Pour les vidéos, on affiche un placeholder avec icône play
-                            videoPlaceholderView
+                            // Pour les vidéos, on affiche un thumbnail avec icône play
+                            ZStack {
+                                // Fond avec gradient pour les vidéos
+                                RoundedRectangle(cornerRadius: 0)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Color.purple.opacity(0.3), Color.pink.opacity(0.2)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                
+                                // Icône play centrée
+                                Image(systemName: "play.circle.fill")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.white.opacity(0.8))
+                            }
                         }
                     } else {
                         placeholderView
@@ -436,6 +478,7 @@ struct HistoryItemDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isDownloading = false
     @State private var showDownloadSuccess = false
+    @State private var videoPlayer: AVPlayer?
     
     var body: some View {
         ZStack {
@@ -512,13 +555,26 @@ struct HistoryItemDetailView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.horizontal, 20)
                             } else {
-                                // Pour les vidéos, on pourrait utiliser un player vidéo
-                                Text("Lecture vidéo")
-                                    .foregroundColor(.white.opacity(0.7))
-                                    .padding(40)
-                                    .background(Color(red: 0.15, green: 0.15, blue: 0.15))
-                                    .cornerRadius(16)
-                                    .padding(.horizontal, 20)
+                                // Lecteur vidéo pour les vidéos
+                                Group {
+                                    if let player = videoPlayer {
+                                        VideoPlayer(player: player)
+                                            .frame(height: 400)
+                                            .cornerRadius(16)
+                                    } else {
+                                        ProgressView()
+                                            .frame(height: 400)
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                                .onAppear {
+                                    if videoPlayer == nil {
+                                        videoPlayer = AVPlayer(url: url)
+                                    }
+                                }
+                                .onDisappear {
+                                    videoPlayer?.pause()
+                                }
                             }
                         } else {
                             placeholderView

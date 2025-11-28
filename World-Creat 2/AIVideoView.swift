@@ -10,22 +10,25 @@ import SwiftUI
 import UIKit
 #endif
 import PhotosUI
+import AVKit
 
 struct AIVideoView: View {
     @Environment(\.dismiss) private var dismiss
     var selectedTab: Binding<AppTab>?
     @StateObject private var openAIService = OpenAIService.shared
     @StateObject private var appState = AppState.shared
+    @StateObject private var generationManager = GenerationManager.shared
     @State private var selectedFormat: VideoFormat = .landscape
     @State private var promptText = ""
     @State private var startingImage: PlatformImage?
     @State private var showImagePicker = false
-    @State private var showVideoResult = false
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var generatedVideoURL: String?
+    @State private var errorVideoMessage: String?
     @State private var isDownloading = false
     @State private var showDownloadSuccess = false
+    @State private var videoPlayer: AVPlayer?
     
     init(selectedTab: Binding<AppTab>? = nil) {
         self.selectedTab = selectedTab
@@ -178,6 +181,9 @@ struct AIVideoView: View {
                                     .padding(14)
                                     .background(Color(red: 0.12, green: 0.12, blue: 0.15))
                                     .cornerRadius(14)
+                                    .onTapGesture {
+                                        // Ne pas fermer le clavier quand on tape dans le TextEditor
+                                    }
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 14)
                                             .stroke(
@@ -238,6 +244,71 @@ struct AIVideoView: View {
                     }
                     .padding(.horizontal, 20)
                     
+                    // Affichage de la vidéo générée
+                    if let videoURLString = generatedVideoURL ?? openAIService.generatedVideoURL,
+                       let videoURL = URL(string: videoURLString) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "video.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.purple)
+                                Text("Vidéo générée")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                            
+                            Group {
+                                if let player = videoPlayer {
+                                    VideoPlayer(player: player)
+                                        .frame(height: 300)
+                                } else {
+                                    ProgressView()
+                                        .frame(height: 300)
+                                }
+                            }
+                            .cornerRadius(16)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color.purple.opacity(0.3), lineWidth: 1)
+                            )
+                            .onAppear {
+                                if videoPlayer == nil {
+                                    videoPlayer = AVPlayer(url: videoURL)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 16)
+                    }
+                    
+                    // Affichage du message d'erreur si présent
+                    if let errorMessage = errorVideoMessage {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.red)
+                                Text("Erreur")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                            
+                            Text(errorMessage)
+                                .font(.system(size: 14))
+                                .foregroundColor(.white.opacity(0.8))
+                                .padding(16)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.red.opacity(0.2))
+                                .cornerRadius(12)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.red.opacity(0.5), lineWidth: 1)
+                                )
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 16)
+                    }
+                    
                     // Espace pour le bouton fixe
                     Spacer(minLength: 100)
                 }
@@ -248,12 +319,13 @@ struct AIVideoView: View {
                 Spacer()
                 HStack(spacing: 12) {
                     Button(action: {
-                        if !promptText.isEmpty && openAIService.generationStatus != .generating {
+                        let isGenerating = openAIService.generationStatus == .generating || generationManager.isGenerating
+                        if !promptText.isEmpty && !isGenerating {
                             generateVideo()
                         }
                     }) {
                         HStack(spacing: 10) {
-                            if openAIService.generationStatus == .generating {
+                            if openAIService.generationStatus == .generating || generationManager.isGenerating {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                     .scaleEffect(0.9)
@@ -271,7 +343,8 @@ struct AIVideoView: View {
                         .padding(.vertical, 16)
                         .background(
                             Group {
-                                if promptText.isEmpty || openAIService.generationStatus == .generating {
+                                let isGenerating = openAIService.generationStatus == .generating || generationManager.isGenerating
+                                if promptText.isEmpty || isGenerating {
                                     Color.gray.opacity(0.4)
                                 } else {
                                     LinearGradient(
@@ -286,18 +359,27 @@ struct AIVideoView: View {
                         .overlay(
                             RoundedRectangle(cornerRadius: 18)
                                 .stroke(
-                                    promptText.isEmpty || openAIService.generationStatus == .generating ? Color.clear : Color.purple.opacity(0.5),
+                                    {
+                                        let isGenerating = openAIService.generationStatus == .generating || generationManager.isGenerating
+                                        return promptText.isEmpty || isGenerating ? Color.clear : Color.purple.opacity(0.5)
+                                    }(),
                                     lineWidth: 1
                                 )
                         )
                         .shadow(
-                            color: promptText.isEmpty || openAIService.generationStatus == .generating ? .clear : .purple.opacity(0.4),
+                            color: {
+                                let isGenerating = openAIService.generationStatus == .generating || generationManager.isGenerating
+                                return promptText.isEmpty || isGenerating ? .clear : .purple.opacity(0.4)
+                            }(),
                             radius: 12,
                             x: 0,
                             y: 6
                         )
                     }
-                    .disabled(promptText.isEmpty || openAIService.generationStatus == .generating)
+                    .disabled({
+                        let isGenerating = openAIService.generationStatus == .generating || generationManager.isGenerating
+                        return promptText.isEmpty || isGenerating
+                    }())
                     
                     Button(action: {
                         downloadVideo()
@@ -361,13 +443,6 @@ struct AIVideoView: View {
         .sheet(isPresented: $showImagePicker) {
             ImagePicker(image: $startingImage)
         }
-        .alert("Vidéo générée !", isPresented: $showVideoResult) {
-            Button("OK") {
-                showVideoResult = false
-            }
-        } message: {
-            Text("Votre vidéo a été générée avec succès !")
-        }
         .alert("Erreur", isPresented: $showError) {
             Button("OK") {
                 openAIService.resetStatus()
@@ -389,6 +464,49 @@ struct AIVideoView: View {
         }
         .onChange(of: openAIService.generationStatus) { oldValue, newValue in
             handleStatusChange(newValue)
+        }
+        .onChange(of: generatedVideoURL) { oldValue, newValue in
+            if let newURLString = newValue, let newURL = URL(string: newURLString) {
+                videoPlayer = AVPlayer(url: newURL)
+            }
+        }
+        .onChange(of: openAIService.generatedVideoURL) { oldValue, newValue in
+            if let newURLString = newValue, let newURL = URL(string: newURLString) {
+                videoPlayer = AVPlayer(url: newURL)
+            }
+        }
+        .onAppear {
+            // Restaurer l'état de génération quand on revient sur l'onglet
+            restoreGenerationState()
+        }
+        .dismissKeyboardOnTap()
+    }
+    
+    private func restoreGenerationState() {
+        // Restaurer l'URL de la vidéo générée
+        if let url = openAIService.generatedVideoURL {
+            generatedVideoURL = url
+        }
+        
+        // Restaurer l'état de génération
+        switch openAIService.generationStatus {
+        case .generating:
+            // La génération continue en arrière-plan
+            generatedVideoURL = nil
+            errorVideoMessage = nil
+            break
+        case .success(let url):
+            generatedVideoURL = url
+            errorVideoMessage = nil
+        case .error(let message):
+            errorMessage = message
+            errorVideoMessage = message
+            showError = true
+            generatedVideoURL = nil
+        case .idle:
+            generatedVideoURL = nil
+            errorVideoMessage = nil
+            break
         }
     }
     
@@ -429,9 +547,37 @@ struct AIVideoView: View {
     
     // Fonction pour gérer le changement de statut
     private func handleStatusChange(_ status: GenerationStatus) {
-        if case .error(let message) = status {
+        switch status {
+        case .generating:
+            // La génération est en cours
+            generatedVideoURL = nil
+            errorVideoMessage = nil
+            break
+        case .success(let url):
+            generatedVideoURL = url
+            errorVideoMessage = nil
+            // Ne plus afficher l'alert, la vidéo sera affichée directement
+            // showVideoResult = true
+            // Ajouter à l'historique
+            appState.generationHistory.insert(
+                GenerationItem(
+                    type: .video,
+                    prompt: promptText,
+                    resultURL: url,
+                    createdAt: Date(),
+                    model: appState.selectedVideoModel.rawValue
+                ),
+                at: 0
+            )
+        case .error(let message):
             errorMessage = message
+            errorVideoMessage = message
             showError = true
+            generatedVideoURL = nil
+        case .idle:
+            generatedVideoURL = nil
+            errorVideoMessage = nil
+            break
         }
     }
     
@@ -443,52 +589,53 @@ struct AIVideoView: View {
             return
         }
         
-        // Vérifier et déduire les crédits
-        let cost = appState.getGenerationCost(for: .video, model: appState.selectedVideoModel.rawValue)
-        guard appState.hasEnoughCredits(for: cost) else {
-            errorMessage = "Vous n'avez pas assez de crédits. Veuillez en acheter."
+        // Vérifier que l'utilisateur est connecté
+        guard appState.isAuthenticated else {
+            errorMessage = "Vous devez être connecté pour générer des vidéos."
             showError = true
             return
         }
         
-        guard appState.deductCredits(cost) else {
-            errorMessage = "Erreur lors de la déduction des crédits."
-            showError = true
-            return
-        }
+        // DÉSACTIVÉ TEMPORAIREMENT : Vérification et déduction des crédits pour les tests
+        // let cost = appState.getGenerationCost(for: .video, model: appState.selectedVideoModel.rawValue)
+        // guard appState.hasEnoughCredits(for: cost) else {
+        //     errorMessage = "Vous n'avez pas assez de crédits. Veuillez en acheter."
+        //     showError = true
+        //     return
+        // }
+        // 
+        // guard appState.deductCredits(cost) else {
+        //     errorMessage = "Erreur lors de la déduction des crédits."
+        //     showError = true
+        //     return
+        // }
+        // 
+        // let deductedCost = cost // Capturer le coût pour le remboursement en cas d'erreur
         
-        let deductedCost = cost // Capturer le coût pour le remboursement en cas d'erreur
+        generatedVideoURL = nil
+        errorVideoMessage = nil
         
         Task {
             do {
-                let videoURL = try await openAIService.generateVideo(
+                // La génération démarre et le polling continue en arrière-plan
+                // Le résultat sera géré via handleStatusChange quand il arrivera
+                _ = try await openAIService.generateVideo(
                     prompt: promptText,
                     format: selectedFormat,
                     startingImage: startingImage,
                     model: appState.selectedVideoModel.rawValue
                 )
-                
-                await MainActor.run {
-                    generatedVideoURL = videoURL
-                    showVideoResult = true
-                    // Ajouter à l'historique
-                    appState.generationHistory.insert(
-                        GenerationItem(
-                            type: .video,
-                            prompt: promptText,
-                            resultURL: videoURL,
-                            createdAt: Date(),
-                            model: appState.selectedVideoModel.rawValue
-                        ),
-                        at: 0
-                    )
-                }
             } catch {
+                // Gérer les erreurs (sauf celles déjà gérées dans le service)
                 await MainActor.run {
-                    errorMessage = error.localizedDescription
+                    if case .error(let message) = openAIService.generationStatus {
+                        errorMessage = message
+                        errorVideoMessage = message
+                    } else {
+                        errorMessage = error.localizedDescription
+                        errorVideoMessage = error.localizedDescription
+                    }
                     showError = true
-                    // Rembourser les crédits en cas d'erreur
-                    appState.addCredits(deductedCost)
                 }
             }
         }

@@ -90,6 +90,12 @@ struct LoginView: View {
         } message: {
             Text(errorMessage)
         }
+        .onChange(of: authService.isAuthenticated) { oldValue, newValue in
+            // Fermer automatiquement si l'utilisateur se connecte
+            if newValue && !oldValue {
+                dismiss()
+            }
+        }
     }
     
     private func handleSignInResult(_ result: Result<ASAuthorization, Error>) {
@@ -113,6 +119,8 @@ struct LoginView: View {
                 // Sauvegarder via le service
                 Task { @MainActor in
                     authService.saveUser(identifier: userIdentifier, email: email, name: name)
+                    // Fermer automatiquement la vue de connexion après succès
+                    dismiss()
                 }
             }
         case .failure(let error):

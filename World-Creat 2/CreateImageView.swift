@@ -6,19 +6,25 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
+import PhotosUI
+#endif
 
 struct CreateImageView: View {
     @Environment(\.dismiss) private var dismiss
     var selectedTab: Binding<AppTab>?
     @StateObject private var appState = AppState.shared
     @StateObject private var imageService = ImageGenerationService.shared
+    @StateObject private var generationManager = GenerationManager.shared
     @State private var promptText = ""
+    @State private var selectedImageFormat: ImageFormat = .ratio1_1
     @State private var uploadedImages: [PlatformImage] = []
     @State private var showImagePicker = false
     @State private var isGenerating = false
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var generatedImageURL: String?
+    @State private var errorImageMessage: String?
     @State private var isDownloading = false
     @State private var showDownloadSuccess = false
     
@@ -119,6 +125,9 @@ struct CreateImageView: View {
                                     .padding(14)
                                     .background(Color(red: 0.12, green: 0.12, blue: 0.15))
                                     .cornerRadius(14)
+                                    .onTapGesture {
+                                        // Ne pas fermer le clavier quand on tape dans le TextEditor
+                                    }
                                 
                                 if promptText.isEmpty {
                                     Text("Décrivez votre image...")
@@ -177,6 +186,52 @@ struct CreateImageView: View {
                     }
                     .padding(.horizontal, 20)
                     
+                    // Section Format d'image
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "aspectratio")
+                                .font(.system(size: 16))
+                                .foregroundColor(.white)
+                            Text("Format")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+                        
+                        Menu {
+                            ForEach(ImageFormat.allCases, id: \.self) { format in
+                                Button(action: {
+                                    selectedImageFormat = format
+                                }) {
+                                    HStack {
+                                        Text(format.displayName)
+                                        if selectedImageFormat == format {
+                                            Image(systemName: "checkmark")
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Text(selectedImageFormat.displayName)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(.white)
+                                Spacer()
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                            .background(Color(red: 0.12, green: 0.12, blue: 0.15))
+                            .cornerRadius(14)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Color.purple.opacity(0.3), lineWidth: 1)
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    
                     // Section Résultat de la génération
                     if let imageURL = generatedImageURL {
                         VStack(alignment: .leading, spacing: 8) {
@@ -228,6 +283,39 @@ struct CreateImageView: View {
                             }
                         }
                         .padding(.horizontal, 20)
+                    } else if let errorMsg = errorImageMessage {
+                        // Section Erreur
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.red)
+                                Text("Erreur")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                            
+                            VStack(spacing: 16) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.red.opacity(0.8))
+                                
+                                Text(errorMsg)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.9))
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 20)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 300)
+                            .background(Color(red: 0.12, green: 0.12, blue: 0.15))
+                            .cornerRadius(16)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                            )
+                        }
+                        .padding(.horizontal, 20)
                     }
                     
                     // Espace pour le bouton fixe
@@ -240,6 +328,7 @@ struct CreateImageView: View {
                 Spacer()
                 HStack(spacing: 12) {
                     GenerateImageButton(
+                        generationManager: generationManager,
                         isGenerating: isGenerating,
                         prompt: promptText,
                         onGenerate: {
@@ -267,10 +356,7 @@ struct CreateImageView: View {
         )
         .sheet(isPresented: $showImagePicker) {
             #if canImport(UIKit)
-            ImagePicker(image: Binding(
-                get: { uploadedImages.first },
-                set: { if let img = $0 { uploadedImages = [img] } }
-            ))
+            MultipleImagePicker(selectedImages: $uploadedImages, maxSelection: 2)
             #endif
         }
         .alert("Erreur", isPresented: $showError) {
@@ -288,6 +374,56 @@ struct CreateImageView: View {
             #else
             Text("L'image a été sauvegardée dans votre dossier Téléchargements.")
             #endif
+        }
+        .onAppear {
+            // Restaurer l'état de génération quand on revient sur l'onglet
+            restoreGenerationState()
+        }
+        .onChange(of: imageService.generationStatus) { oldValue, newValue in
+            // Mettre à jour l'état local quand le statut change
+            updateLocalState(from: newValue)
+        }
+        .dismissKeyboardOnTap()
+    }
+    
+    private func restoreGenerationState() {
+        // Restaurer l'URL de l'image générée
+        if let url = imageService.generatedImageURL {
+            generatedImageURL = url
+            errorImageMessage = nil
+        }
+        
+        // Restaurer l'état de génération
+        switch imageService.generationStatus {
+        case .generating:
+            isGenerating = true
+        case .success(let url):
+            generatedImageURL = url
+            errorImageMessage = nil
+            isGenerating = false
+        case .error(let message):
+            errorImageMessage = message
+            generatedImageURL = nil
+            isGenerating = false
+        case .idle:
+            isGenerating = false
+        }
+    }
+    
+    private func updateLocalState(from status: GenerationStatus) {
+        switch status {
+        case .generating:
+            isGenerating = true
+        case .success(let url):
+            generatedImageURL = url
+            errorImageMessage = nil
+            isGenerating = false
+        case .error(let message):
+            errorImageMessage = message
+            generatedImageURL = nil
+            isGenerating = false
+        case .idle:
+            isGenerating = false
         }
     }
     
@@ -324,22 +460,30 @@ struct CreateImageView: View {
             return
         }
         
-        // Vérifier et déduire les crédits
-        let cost = appState.getGenerationCost(for: .image)
-        guard appState.hasEnoughCredits(for: cost) else {
-            errorMessage = "Vous n'avez pas assez de crédits. Veuillez en acheter."
+        // Vérifier que l'utilisateur est connecté
+        guard appState.isAuthenticated else {
+            errorMessage = "Vous devez être connecté pour générer des images."
             showError = true
             return
         }
         
-        guard appState.deductCredits(cost) else {
-            errorMessage = "Erreur lors de la déduction des crédits."
-            showError = true
-            return
-        }
+        // DÉSACTIVÉ TEMPORAIREMENT : Vérification et déduction des crédits pour les tests
+        // let cost = appState.getGenerationCost(for: .image)
+        // guard appState.hasEnoughCredits(for: cost) else {
+        //     errorMessage = "Vous n'avez pas assez de crédits. Veuillez en acheter."
+        //     showError = true
+        //     return
+        // }
+        // 
+        // guard appState.deductCredits(cost) else {
+        //     errorMessage = "Erreur lors de la déduction des crédits."
+        //     showError = true
+        //     return
+        // }
         
-        let deductedCost = cost // Capturer le coût pour le remboursement en cas d'erreur
         isGenerating = true
+        generatedImageURL = nil // Effacer l'image précédente
+        errorImageMessage = nil // Effacer l'erreur précédente
         
         Task {
             do {
@@ -347,12 +491,14 @@ struct CreateImageView: View {
                 let imageURL = try await imageService.generateImage(
                     prompt: promptText,
                     model: appState.selectedAIModel.rawValue,
+                    format: selectedImageFormat.rawValue,
                     referenceImages: uploadedImages
                 )
                 
                 await MainActor.run {
                     isGenerating = false
                     generatedImageURL = imageURL
+                    errorImageMessage = nil // Effacer l'erreur précédente si succès
                     // Ajouter à l'historique
                     appState.generationHistory.insert(
                         GenerationItem(
@@ -369,14 +515,18 @@ struct CreateImageView: View {
                 await MainActor.run {
                     isGenerating = false
                     // Utiliser le message d'erreur du service (déjà user-friendly)
+                    let errorMsg: String
                     if case .error(let message) = imageService.generationStatus {
-                        errorMessage = message
+                        errorMsg = message
                     } else {
-                        errorMessage = error.localizedDescription
+                        errorMsg = error.localizedDescription
                     }
+                    errorMessage = errorMsg
+                    errorImageMessage = errorMsg
+                    generatedImageURL = nil // S'assurer qu'on n'affiche pas d'image
                     showError = true
-                    // Rembourser les crédits en cas d'erreur
-                    appState.addCredits(deductedCost)
+                    // DÉSACTIVÉ TEMPORAIREMENT : Remboursement des crédits en cas d'erreur
+                    // appState.addCredits(deductedCost)
                     imageService.resetStatus()
                 }
             }
@@ -424,18 +574,23 @@ struct ModelSelectionCard: View {
 }
 
 struct GenerateImageButton: View {
+    @ObservedObject var generationManager: GenerationManager
     let isGenerating: Bool
     let prompt: String
     let onGenerate: () -> Void
     
+    private var isDisabled: Bool {
+        prompt.isEmpty || isGenerating || generationManager.isGenerating
+    }
+    
     var body: some View {
         Button(action: {
-            if !prompt.isEmpty && !isGenerating {
+            if !isDisabled {
                 onGenerate()
             }
         }) {
             HStack(spacing: 12) {
-                if isGenerating {
+                if isGenerating || generationManager.isGenerating {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         .scaleEffect(0.9)
@@ -463,7 +618,7 @@ struct GenerateImageButton: View {
             .padding(.vertical, 16)
             .background(
                 Group {
-                    if prompt.isEmpty || isGenerating {
+                    if isDisabled {
                         Color.gray.opacity(0.4)
                     } else {
                         LinearGradient(
@@ -478,18 +633,18 @@ struct GenerateImageButton: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 18)
                     .stroke(
-                        prompt.isEmpty || isGenerating ? Color.clear : Color.purple.opacity(0.5),
+                        isDisabled ? Color.clear : Color.purple.opacity(0.5),
                         lineWidth: 1
                     )
             )
             .shadow(
-                color: prompt.isEmpty || isGenerating ? .clear : .purple.opacity(0.4),
+                color: isDisabled ? .clear : .purple.opacity(0.4),
                 radius: 12,
                 x: 0,
                 y: 6
             )
         }
-        .disabled(prompt.isEmpty || isGenerating)
+        .disabled(isDisabled)
         .padding(.horizontal, 20)
     }
 }
@@ -584,6 +739,108 @@ struct UploadedImagePreview: View {
         }
     }
 }
+
+// Image Picker pour sélectionner plusieurs images
+#if canImport(UIKit)
+import PhotosUI
+
+struct MultipleImagePicker: UIViewControllerRepresentable {
+    @Binding var selectedImages: [PlatformImage]
+    let maxSelection: Int
+    @Environment(\.presentationMode) var presentationMode
+    
+    func makeUIViewController(context: Context) -> PHPickerViewController {
+        var configuration = PHPickerConfiguration()
+        configuration.filter = .images
+        configuration.selectionLimit = maxSelection
+        configuration.preferredAssetRepresentationMode = .current
+        
+        let picker = PHPickerViewController(configuration: configuration)
+        picker.delegate = context.coordinator
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, PHPickerViewControllerDelegate {
+        let parent: MultipleImagePicker
+        
+        init(_ parent: MultipleImagePicker) {
+            self.parent = parent
+        }
+        
+        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+            parent.presentationMode.wrappedValue.dismiss()
+            
+            // Si aucune image sélectionnée, on ne fait rien
+            guard !results.isEmpty else { return }
+            
+            // Charger les images sélectionnées
+            let group = DispatchGroup()
+            var loadedImages: [PlatformImage] = []
+            
+            for result in results {
+                group.enter()
+                result.itemProvider.loadObject(ofClass: UIImage.self) { object, error in
+                    defer { group.leave() }
+                    if let image = object as? UIImage {
+                        loadedImages.append(image)
+                    }
+                }
+            }
+            
+            group.notify(queue: .main) {
+                // Ajouter les nouvelles images au tableau existant (sans dépasser la limite)
+                let remainingSlots = self.parent.maxSelection - self.parent.selectedImages.count
+                let imagesToAdd = Array(loadedImages.prefix(remainingSlots))
+                self.parent.selectedImages.append(contentsOf: imagesToAdd)
+            }
+        }
+    }
+}
+#endif
+
+// Extension pour fermer le clavier au tap
+extension View {
+    func dismissKeyboardOnTap() -> some View {
+        #if canImport(UIKit)
+        return self.background(
+            TapGestureView()
+        )
+        #else
+        return self
+        #endif
+    }
+}
+
+#if canImport(UIKit)
+struct TapGestureView: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.backgroundColor = .clear
+        let tapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.dismissKeyboard))
+        tapGesture.cancelsTouchesInView = false
+        view.addGestureRecognizer(tapGesture)
+        return view
+    }
+    
+    func updateUIView(_ uiView: UIView, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+    
+    class Coordinator {
+        @objc func dismissKeyboard() {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
+    }
+}
+#endif
 
 #Preview {
     CreateImageView()

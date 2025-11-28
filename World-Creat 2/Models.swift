@@ -161,3 +161,21 @@ enum VideoFormat: String, CaseIterable {
     case square = "Format carré"
 }
 
+// Format d'image (ratio d'aspect)
+enum ImageFormat: String, CaseIterable {
+    case ratio1_1 = "1:1"
+    case ratio9_16 = "9:16"
+    case ratio16_9 = "16:9"
+    case ratio3_4 = "3:4"
+    case ratio4_3 = "4:3"
+    case ratio3_2 = "3:2"
+    case ratio2_3 = "2:3"
+    case ratio5_4 = "5:4"
+    case ratio4_5 = "4:5"
+    case ratio21_9 = "21:9"
+    
+    var displayName: String {
+        return self.rawValue
+    }
+}
+

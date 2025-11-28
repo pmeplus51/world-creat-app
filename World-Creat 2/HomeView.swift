@@ -1615,6 +1615,10 @@ struct PremiumTabBar: View {
                     withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
                         selectedTab = tab
                     }
+                    // Fermer le clavier quand on change d'onglet
+                    #if canImport(UIKit)
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    #endif
                 }) {
                     VStack(spacing: 4) {
                         Image(systemName: tab.icon)
@@ -1628,7 +1632,7 @@ struct PremiumTabBar: View {
                                     endPoint: .bottomTrailing
                                 ) :
                                 LinearGradient(
-                                    colors: [Color.white.opacity(0.4), Color.white.opacity(0.4)],
+                                    colors: [Color.white.opacity(0.6), Color.white.opacity(0.6)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -1636,7 +1640,7 @@ struct PremiumTabBar: View {
                         
                         Text(tab.rawValue)
                             .font(.system(size: 10, weight: selectedTab == tab ? .semibold : .regular))
-                            .foregroundColor(selectedTab == tab ? .white : .white.opacity(0.5))
+                            .foregroundColor(selectedTab == tab ? .white : .white.opacity(0.7))
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 54)
@@ -1645,22 +1649,61 @@ struct PremiumTabBar: View {
             }
         }
         .padding(.horizontal, 20)
-        .padding(.top, 10)
-        .padding(.bottom, 28)
+        .padding(.top, 12)
+        .padding(.bottom, 34)
         .background(
-            // Fond complètement transparent avec juste une ombre très subtile
-            Color.clear
-        )
-        .overlay(
-            // Ligne de séparation ultra fine en haut
-            VStack {
-                Rectangle()
-                    .frame(height: 0.2)
-                    .foregroundColor(.white.opacity(0.04))
-                Spacer()
+            // Effet glassmorphism (liquid glass)
+            ZStack {
+                // Fond avec blur
+                RoundedRectangle(cornerRadius: 0)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.8)
+                
+                // Overlay avec gradient pour l'effet glass
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(0.25),
+                        Color.white.opacity(0.1)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                
+                // Bordure subtile en haut
+                VStack {
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.3),
+                                    Color.white.opacity(0.1)
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                    Spacer()
+                }
             }
         )
-        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: -2)
+        .overlay(
+            // Bordure brillante subtile
+            RoundedRectangle(cornerRadius: 0)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.2),
+                            Color.white.opacity(0.05)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 0.5
+                )
+        )
+        .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: -5)
+        .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: -2)
     }
 }
 
@@ -1685,12 +1728,24 @@ struct MainTabView: View {
             contentView
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             
-            // Footer premium en overlay
+            // Footer premium en overlay - collé en bas avec effet glassmorphism
             VStack {
                 Spacer()
                 PremiumTabBar(selectedTab: $selectedTab)
+                    .background(
+                        // Fond supplémentaire pour l'effet glass
+                        LinearGradient(
+                            colors: [
+                                Color.black.opacity(0.3),
+                                Color.black.opacity(0.1)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
             }
             .ignoresSafeArea(.keyboard, edges: .bottom)
+            .ignoresSafeArea(.container, edges: .bottom)
         }
         .background(
             LinearGradient(
