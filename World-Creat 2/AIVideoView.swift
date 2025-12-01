@@ -324,7 +324,7 @@ struct AIVideoView: View {
                             generateVideo()
                         }
                     }) {
-                        HStack(spacing: 10) {
+                        HStack(spacing: 12) {
                             if openAIService.generationStatus == .generating || generationManager.isGenerating {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
@@ -335,6 +335,15 @@ struct AIVideoView: View {
                                 Image(systemName: "sparkles")
                                     .font(.system(size: 18, weight: .semibold))
                                 Text("Générer")
+                                    .font(.system(size: 17, weight: .semibold))
+                            }
+                            
+                            Spacer()
+                            
+                            HStack(spacing: 6) {
+                                Image(systemName: "dollarsign.circle.fill")
+                                    .font(.system(size: 16))
+                                Text("\(appState.getGenerationCost(for: .video, model: appState.selectedVideoModel.rawValue))")
                                     .font(.system(size: 17, weight: .semibold))
                             }
                         }
@@ -574,6 +583,8 @@ struct AIVideoView: View {
             errorVideoMessage = message
             showError = true
             generatedVideoURL = nil
+            // Remboursement des crédits en cas d'erreur
+            // Le coût déduit sera remboursé dans generateVideo() en cas d'erreur
         case .idle:
             generatedVideoURL = nil
             errorVideoMessage = nil
@@ -596,21 +607,21 @@ struct AIVideoView: View {
             return
         }
         
-        // DÉSACTIVÉ TEMPORAIREMENT : Vérification et déduction des crédits pour les tests
-        // let cost = appState.getGenerationCost(for: .video, model: appState.selectedVideoModel.rawValue)
-        // guard appState.hasEnoughCredits(for: cost) else {
-        //     errorMessage = "Vous n'avez pas assez de crédits. Veuillez en acheter."
-        //     showError = true
-        //     return
-        // }
-        // 
-        // guard appState.deductCredits(cost) else {
-        //     errorMessage = "Erreur lors de la déduction des crédits."
-        //     showError = true
-        //     return
-        // }
-        // 
-        // let deductedCost = cost // Capturer le coût pour le remboursement en cas d'erreur
+        // Vérification et déduction des crédits
+        let cost = appState.getGenerationCost(for: .video, model: appState.selectedVideoModel.rawValue)
+        guard appState.hasEnoughCredits(for: cost) else {
+            errorMessage = "Vous n'avez pas assez de crédits. Veuillez en acheter."
+            showError = true
+            return
+        }
+        
+        guard appState.deductCredits(cost) else {
+            errorMessage = "Erreur lors de la déduction des crédits."
+            showError = true
+            return
+        }
+        
+        let deductedCost = cost // Capturer le coût pour le remboursement en cas d'erreur
         
         generatedVideoURL = nil
         errorVideoMessage = nil
@@ -636,6 +647,8 @@ struct AIVideoView: View {
                         errorVideoMessage = error.localizedDescription
                     }
                     showError = true
+                    // Remboursement des crédits en cas d'erreur
+                    appState.addCredits(deductedCost)
                 }
             }
         }
