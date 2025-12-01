@@ -21,9 +21,9 @@ class CreditsManager: ObservableObject {
     
     // Coûts de génération
     struct GenerationCost {
-        static let image = 525
-        static let videoSora2 = 1310
-        static let videoVeo3 = 1500
+        static let image = 100
+        static let videoSora2 = 500
+        static let videoVeo3 = 950
     }
     
     private init() {
@@ -85,7 +85,7 @@ class CreditsManager: ObservableObject {
         case .image:
             return GenerationCost.image
         case .video:
-            if let model = model, model == "Veo 3" {
+            if let model = model, (model == "Veo 3.1" || model.contains("Veo")) {
                 return GenerationCost.videoVeo3
             }
             return GenerationCost.videoSora2

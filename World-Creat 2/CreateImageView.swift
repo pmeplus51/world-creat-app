@@ -331,6 +331,7 @@ struct CreateImageView: View {
                         generationManager: generationManager,
                         isGenerating: isGenerating,
                         prompt: promptText,
+                        cost: appState.getGenerationCost(for: .image),
                         onGenerate: {
                             generateImage()
                         }
@@ -577,6 +578,7 @@ struct GenerateImageButton: View {
     @ObservedObject var generationManager: GenerationManager
     let isGenerating: Bool
     let prompt: String
+    let cost: Int
     let onGenerate: () -> Void
     
     private var isDisabled: Bool {
@@ -609,7 +611,7 @@ struct GenerateImageButton: View {
                 HStack(spacing: 6) {
                     Image(systemName: "dollarsign.circle.fill")
                         .font(.system(size: 16))
-                    Text("525")
+                    Text("\(cost)")
                         .font(.system(size: 17, weight: .semibold))
                 }
             }
