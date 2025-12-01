@@ -24,9 +24,9 @@ struct SubscriptionView: View {
         
         var coins: Int {
             switch self {
-            case .starter: return 9000
-            case .pro: return 24000
-            case .studio: return 50000
+            case .starter: return 10000
+            case .pro: return 22000
+            case .studio: return 35000
             }
         }
         
@@ -41,9 +41,9 @@ struct SubscriptionView: View {
         var defaultPrice: String {
             // Prix par défaut (sera remplacé par le prix StoreKit si disponible)
             switch self {
-            case .starter: return "6 € HT"
-            case .pro: return "15 € HT"
-            case .studio: return "30 € HT"
+            case .starter: return "9,99 € HT"
+            case .pro: return "19,99 € HT"
+            case .studio: return "29,99 € HT"
             }
         }
         
@@ -312,6 +312,10 @@ struct SubscriptionPlanCard: View {
                 Text("hebdomadaire")
                     .font(.system(size: 14))
                     .foregroundColor(.white.opacity(0.6))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
                 
                 // Prix
                 Text(price)
@@ -319,7 +323,7 @@ struct SubscriptionPlanCard: View {
                     .foregroundColor(.white)
                     .padding(.top, 4)
             }
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, 24)
             .padding(.horizontal, 16)
             .background(

@@ -88,15 +88,15 @@ struct HomeView: View {
                 }
                 .padding(.vertical, 8)
                 
-                // Section modèles AI avec navigation
-                VStack(alignment: .leading, spacing: 16) {
+                // Section modèles AI avec navigation - mise en avant
+                VStack(alignment: .leading, spacing: 20) {
                     HStack(alignment: .bottom, spacing: 12) {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Modèles IA")
-                                .font(.system(size: 28, weight: .bold))
+                                .font(.system(size: 30, weight: .bold))
                                 .foregroundStyle(
                                     LinearGradient(
-                                        colors: [Color.white, Color.white.opacity(0.9)],
+                                        colors: [Color.white, Color.purple.opacity(0.9), Color.white],
                                         startPoint: .leading,
                                         endPoint: .trailing
                                     )
@@ -104,21 +104,23 @@ struct HomeView: View {
                             Rectangle()
                                 .fill(
                                     LinearGradient(
-                                        colors: [Color.purple, Color.pink],
+                                        colors: [Color.purple, Color.pink, Color.purple],
                                         startPoint: .leading,
                                         endPoint: .trailing
                                     )
                                 )
-                                .frame(width: 60, height: 3)
+                                .frame(width: 70, height: 4)
                                 .cornerRadius(2)
+                                .shadow(color: Color.purple.opacity(0.6), radius: 4, x: 0, y: 2)
                         }
                         Spacer()
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 8)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
                     
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 16) {
+                        HStack(spacing: 20) {
                             // Carte Sora 2
                             ModelCard(
                                 model: .video(.sora2),
@@ -164,8 +166,26 @@ struct HomeView: View {
                             .id("veo3-\(viewId)")
                         }
                         .padding(.horizontal, 20)
+                        .padding(.vertical, 8)
                     }
                 }
+                .padding(.vertical, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: 0)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.clear,
+                                    Color.purple.opacity(0.03),
+                                    Color.pink.opacity(0.02),
+                                    Color.clear
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .padding(.horizontal, -20)
+                )
                 
                 // Section "Créations récentes"
                 if !appState.generationHistory.isEmpty {
@@ -194,11 +214,54 @@ struct HomeView: View {
                     }
                 }
                 
-                // Section "Texte en Vidéo"
+                // Section "Avatar produit"
                 VStack(alignment: .leading, spacing: 16) {
                     HStack(alignment: .bottom, spacing: 12) {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Texte en Vidéo")
+                            Text("Avatar produit")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [Color.white, Color.white.opacity(0.9)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                            Rectangle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color.purple, Color.pink],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: 60, height: 3)
+                                .cornerRadius(2)
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+                    
+                    LazyVGrid(
+                        columns: [
+                            GridItem(.flexible(), spacing: 16),
+                            GridItem(.flexible(), spacing: 16)
+                        ],
+                        alignment: .center,
+                        spacing: 16
+                    ) {
+                        AvatarProduitImageCard()
+                        AvatarProduitVideoCard()
+                    }
+                    .padding(.horizontal, 20)
+                }
+                
+                // Section "Adds depuis un prompt"
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(alignment: .bottom, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Adds depuis un prompt")
                                 .font(.system(size: 28, weight: .bold))
                                 .foregroundStyle(
                                     LinearGradient(
@@ -237,11 +300,11 @@ struct HomeView: View {
                     .padding(.horizontal, 20)
                 }
                 
-                // Section "Image en Vidéo"
+                // Section "Adds depuis une image"
                 VStack(alignment: .leading, spacing: 16) {
                     HStack(alignment: .bottom, spacing: 12) {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Image en Vidéo")
+                            Text("Adds depuis une image")
                                 .font(.system(size: 28, weight: .bold))
                                 .foregroundStyle(
                                     LinearGradient(
@@ -488,26 +551,42 @@ struct ModelCard: View {
                                 }
                             }
                         }
-                        .frame(width: 200, height: 280)
+                        .frame(width: 260, height: 360)
                         .clipped()
-                        .cornerRadius(16)
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [Color.white.opacity(0.2), Color.white.opacity(0.05)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        )
                         .scaleEffect(isSelected ? 1.05 : 1.0)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: isSelected)
                         .overlay(
                             // Bouton play transparent au centre
                             ZStack {
                                 // Cercle avec fond semi-transparent et bordure
                                 Circle()
-                                    .fill(Color.black.opacity(0.3))
-                                    .frame(width: 64, height: 64)
+                                    .fill(Color.black.opacity(0.5))
+                                    .frame(width: 72, height: 72)
+                                    .blur(radius: 2)
                                 
                                 Circle()
-                                    .stroke(Color.white.opacity(0.6), lineWidth: 2)
-                                    .frame(width: 64, height: 64)
+                                    .fill(Color.black.opacity(0.3))
+                                    .frame(width: 72, height: 72)
+                                
+                                Circle()
+                                    .stroke(Color.white.opacity(0.9), lineWidth: 2.5)
+                                    .frame(width: 72, height: 72)
                                 
                                 // Icône play
                                 Image(systemName: "play.fill")
-                                    .font(.system(size: 20, weight: .medium))
+                                    .font(.system(size: 26, weight: .medium))
                                     .foregroundColor(.white)
                                     .offset(x: 3) // Légèrement décalé pour l'effet visuel
                             }
@@ -567,11 +646,22 @@ struct ModelCard: View {
                                     )
                             }
                         }
-                        .frame(width: 200, height: 280)
+                        .frame(width: 260, height: 360)
                         .clipped()
-                        .cornerRadius(16)
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [Color.white.opacity(0.2), Color.white.opacity(0.05)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        )
                         .scaleEffect(isSelected ? 1.05 : 1.0)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: isSelected)
                     } else {
                         RoundedRectangle(cornerRadius: 16)
                             .fill(
@@ -583,37 +673,64 @@ struct ModelCard: View {
                                     endPoint: .bottomTrailing
                                 )
                             )
-                            .frame(width: 200, height: 280)
+                            .frame(width: 260, height: 360)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: [Color.white.opacity(0.2), Color.white.opacity(0.05)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
                             .scaleEffect(isSelected ? 1.05 : 1.0)
-                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+                            .animation(.spring(response: 0.4, dampingFraction: 0.75), value: isSelected)
                     }
                     
-                    // Overlay pour la bordure sélectionnée
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(isSelected ? Color.purple : Color.clear, lineWidth: 2)
-                        .frame(width: 200, height: 280)
+                    // Overlay pour la bordure sélectionnée avec effet de glow amélioré
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(
+                            isSelected ? 
+                                LinearGradient(
+                                    colors: [Color.purple, Color.pink, Color.purple],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ) :
+                                LinearGradient(
+                                    colors: [Color.clear],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                            lineWidth: isSelected ? 3 : 0
+                        )
+                        .frame(width: 260, height: 360)
+                        .shadow(color: isSelected ? Color.purple.opacity(0.9) : Color.clear, radius: 20, x: 0, y: 0)
+                        .shadow(color: isSelected ? Color.pink.opacity(0.7) : Color.clear, radius: 30, x: 0, y: 0)
+                        .shadow(color: isSelected ? Color.purple.opacity(0.5) : Color.clear, radius: 40, x: 0, y: 0)
                     
                     // Icône en bas à gauche (seulement si ce n'est pas Veo 3)
                     if !isVeo3 {
                         if icon == "🍌" {
                             Text(icon)
-                                .font(.system(size: 32))
-                                .padding(12)
+                                .font(.system(size: 40))
+                                .padding(16)
                                 .background(
                                     Circle()
-                                        .fill(Color.black.opacity(0.3))
+                                        .fill(Color.black.opacity(0.4))
                                         .blur(radius: 10)
                                 )
                         } else {
                             Image(systemName: icon)
-                                .font(.system(size: 20))
+                                .font(.system(size: 28))
                                 .foregroundColor(.white)
-                                .padding(10)
+                                .padding(12)
                                 .background(
                                     Circle()
-                                        .fill(Color.black.opacity(0.5))
+                                        .fill(Color.black.opacity(0.6))
                                 )
-                                .padding(12)
+                                .padding(16)
                         }
                     }
                     
@@ -623,36 +740,62 @@ struct ModelCard: View {
                             HStack {
                                 Spacer()
                                 Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 24))
+                                    .font(.system(size: 32))
                                     .foregroundColor(.purple)
                                     .background(Color.white)
                                     .clipShape(Circle())
+                                    .shadow(color: Color.purple.opacity(0.6), radius: 10, x: 0, y: 0)
                             }
                             Spacer()
                         }
-                        .padding(12)
+                        .padding(16)
                     }
                 }
-                .frame(width: 200, height: 280)
+                .frame(width: 260, height: 360)
                 .clipped()
+                .shadow(color: .black.opacity(0.5), radius: 25, x: 0, y: 12)
+                .shadow(color: .black.opacity(0.3), radius: 50, x: 0, y: 25)
+                .shadow(color: .purple.opacity(0.15), radius: 30, x: 0, y: 15)
                 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text(title)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.white, Color.white.opacity(0.95)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
                     
                     Text(modelTypeDescription)
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.6))
+                        .font(.system(size: 13))
+                        .foregroundColor(.white.opacity(0.75))
                         .lineLimit(2)
                         .minimumScaleFactor(0.85)
                         .fixedSize(horizontal: false, vertical: true)
                         .multilineTextAlignment(.leading)
                 }
-                .padding(.top, 12)
-                .frame(width: 200, alignment: .leading)
+                .padding(.top, 14)
+                .frame(width: 260, alignment: .leading)
             }
-            .frame(width: 200)
+            .frame(width: 260)
+            .background(
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.purple.opacity(0.08),
+                                Color.pink.opacity(0.04),
+                                Color.clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .padding(-8)
+            )
+            .shadow(color: .black.opacity(0.35), radius: 35, x: 0, y: 18)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -729,6 +872,9 @@ extension ModelCard {
     
     private func loadSora2Video() {
         let baseNames = [
+            "femme_plage",
+            "femme-plage",
+            "FemmePlage",
             "sora2",
             "sora2_video",
             "sora2-video",
@@ -908,7 +1054,7 @@ struct HistoryCard: View {
 struct TextToVideoCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Soldat en plein champ de bataille, caméra épaule immersive avec grains cinéma. Fumée, flammes, mouvement nerveux, ambiance sombre inspirée des films de guerre modernes.")
+            Text("iPhone noir posé sur fond sombre, caméra en mouvement lent et fluide autour du produit, éclairage cinématique avec reflets subtils sur la surface, profondeur de champ nette, mouvement 360 degrés élégant, qualité premium et professionnelle.")
                 .font(.system(size: 14))
                 .foregroundColor(.white)
                 .lineLimit(nil)
@@ -923,6 +1069,8 @@ struct TextToVideoCard: View {
 
 struct ImageToVideoCard: View {
     @State private var player: AVPlayer?
+    @State private var loopTimer: Timer?
+    @State private var timeObserver: Any?
     
     var body: some View {
         ZStack {
@@ -942,6 +1090,8 @@ struct ImageToVideoCard: View {
                         DispatchQueue.main.async {
                             player.play()
                             print("▶️ Lecture de la vidéo démarrée")
+                            // Boucle de 3 secondes pour la vidéo iPhone
+                            startThreeSecondLoop(player: player)
                         }
                     }
                     .onDisappear {
@@ -982,6 +1132,15 @@ struct ImageToVideoCard: View {
         .onDisappear {
             player?.pause()
             player?.seek(to: .zero)
+            loopTimer?.invalidate()
+            loopTimer = nil
+            
+            // Nettoyer le timeObserver
+            if let player = player, let observer = timeObserver {
+                player.removeTimeObserver(observer)
+                timeObserver = nil
+            }
+            
             // Nettoyer les observers
             if let currentItem = player?.currentItem {
                 NotificationCenter.default.removeObserver(
@@ -993,26 +1152,80 @@ struct ImageToVideoCard: View {
         }
     }
     
-    private func loadVideo() {
-        // Charger la vidéo depuis le bundle
-        // Le fichier s'appelle "texte_en_video"
+    // Boucle de 3 secondes pour la vidéo iPhone (uniquement les 3 premières secondes)
+    private func startThreeSecondLoop(player: AVPlayer) {
+        loopTimer?.invalidate()
         
-        print("🔍 Tentative de chargement de la vidéo 'texte_en_video'")
-        
-        // Méthode 1 : Essayer avec différentes extensions (sans extension d'abord)
-        if let videoURL = Bundle.main.url(forResource: "texte_en_video", withExtension: nil) {
-            print("✅ Vidéo trouvée dans le bundle (sans extension): \(videoURL.path)")
-            let newPlayer = createMutedPlayer(with: videoURL)
-            configurePlayerForLoop(player: newPlayer)
-            player = newPlayer
-            return
+        // Nettoyer l'ancien observer s'il existe
+        if let observer = timeObserver {
+            player.removeTimeObserver(observer)
         }
         
-        // Méthode 2 : Essayer avec différentes extensions
-        let extensions = ["mp4", "mov", "m4v", "MOV", "MP4", "m4v"]
-        for ext in extensions {
-            if let videoURL = Bundle.main.url(forResource: "texte_en_video", withExtension: ext) {
-                print("✅ Vidéo trouvée avec extension \(ext): \(videoURL.path)")
+        // Observer le temps de lecture pour arrêter à 3 secondes
+        let interval = CMTime(seconds: 0.1, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
+        let observer = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak player] time in
+            guard let player = player else { return }
+            let currentTime = CMTimeGetSeconds(time)
+            
+            // Si on dépasse 3 secondes, revenir au début
+            if currentTime >= 3.0 {
+                player.seek(to: .zero) { success in
+                    if success {
+                        player.play()
+                    }
+                }
+            }
+        }
+        
+        // Stocker l'observer pour le nettoyer plus tard
+        timeObserver = observer
+        
+        // Démarrer la lecture depuis le début
+        player.seek(to: .zero) { success in
+            if success {
+                player.play()
+            }
+        }
+    }
+    
+    private func loadVideo() {
+        // Charger la vidéo depuis le bundle
+        // Le fichier s'appelle "iphone"
+        
+        print("🔍 Tentative de chargement de la vidéo 'iphone'")
+        
+        // Liste des noms possibles pour la vidéo iPhone (uniquement les variantes d'iphone)
+        let videoNames = ["iphone", "iPhone", "IPHONE", "iphone_video", "iPhone_video"]
+        
+        // MÉTHODE 1 : PRIORITÉ - Essayer avec NSDataAsset (si dans Assets.xcassets)
+        // Les vidéos dans Assets.xcassets doivent être dans un Data Set
+        #if canImport(UIKit)
+        for videoName in videoNames {
+            if let dataAsset = NSDataAsset(name: videoName) {
+                print("✅ Data Asset '\(videoName)' trouvé dans Assets.xcassets, taille: \(dataAsset.data.count) bytes")
+                let tempURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString)
+                    .appendingPathExtension("mp4")
+                
+                do {
+                    try dataAsset.data.write(to: tempURL)
+                    print("✅ Fichier temporaire créé: \(tempURL.path)")
+                    let newPlayer = createMutedPlayer(with: tempURL)
+                    configurePlayerForLoop(player: newPlayer)
+                    player = newPlayer
+                    print("✅ AVPlayer créé avec succès pour '\(videoName)'")
+                    return
+                } catch {
+                    print("❌ Erreur lors de l'écriture du fichier temporaire pour '\(videoName)': \(error)")
+                }
+            }
+        }
+        #endif
+        
+        // Méthode 2 : Essayer avec différentes extensions (sans extension d'abord)
+        for videoName in videoNames {
+            if let videoURL = Bundle.main.url(forResource: videoName, withExtension: nil) {
+                print("✅ Vidéo '\(videoName)' trouvée dans le bundle (sans extension): \(videoURL.path)")
                 let newPlayer = createMutedPlayer(with: videoURL)
                 configurePlayerForLoop(player: newPlayer)
                 player = newPlayer
@@ -1020,39 +1233,33 @@ struct ImageToVideoCard: View {
             }
         }
         
-        // Méthode 3 : Essayer avec le nom avec espace (au cas où)
-        if let videoURL = Bundle.main.url(forResource: "texte en video", withExtension: nil) {
-            print("✅ Vidéo trouvée avec nom avec espace: \(videoURL.path)")
-            let newPlayer = createMutedPlayer(with: videoURL)
-            configurePlayerForLoop(player: newPlayer)
-            player = newPlayer
-            return
-        }
-        
-        // Méthode 4 : Essayer avec NSDataAsset (si dans Assets.xcassets)
-        #if canImport(UIKit)
-        if let dataAsset = NSDataAsset(name: "texte_en_video") {
-            print("✅ Data Set trouvé, taille: \(dataAsset.data.count) bytes")
-            let tempURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent(UUID().uuidString)
-                .appendingPathExtension("mp4")
-            
-            do {
-                try dataAsset.data.write(to: tempURL)
-                print("✅ Fichier temporaire créé: \(tempURL.path)")
-                let newPlayer = createMutedPlayer(with: tempURL)
-                configurePlayerForLoop(player: newPlayer)
-                player = newPlayer
-                print("✅ AVPlayer créé avec succès")
-                return
-            } catch {
-                print("❌ Erreur lors de l'écriture du fichier temporaire: \(error)")
+        // Méthode 3 : Essayer avec différentes extensions
+        let extensions = ["mp4", "mov", "m4v", "MOV", "MP4", "m4v"]
+        for videoName in videoNames {
+            for ext in extensions {
+                if let videoURL = Bundle.main.url(forResource: videoName, withExtension: ext) {
+                    print("✅ Vidéo '\(videoName)' trouvée avec extension \(ext): \(videoURL.path)")
+                    let newPlayer = createMutedPlayer(with: videoURL)
+                    configurePlayerForLoop(player: newPlayer)
+                    player = newPlayer
+                    return
+                }
             }
         }
-        #endif
+        
+        // Méthode 4 : Essayer avec le nom avec espace (au cas où)
+        for videoName in videoNames {
+            if let videoURL = Bundle.main.url(forResource: videoName.replacingOccurrences(of: "_", with: " "), withExtension: nil) {
+                print("✅ Vidéo trouvée avec nom avec espace: \(videoURL.path)")
+                let newPlayer = createMutedPlayer(with: videoURL)
+                configurePlayerForLoop(player: newPlayer)
+                player = newPlayer
+                return
+            }
+        }
         
         // Si la vidéo n'est pas trouvée, player reste nil et le fallback s'affiche
-        print("❌ Vidéo 'texte_en_video' non trouvée dans le bundle")
+        print("❌ Vidéo 'iphone' non trouvée dans le bundle (testés: \(videoNames.joined(separator: ", ")))")
         print("📦 Bundle path: \(Bundle.main.bundlePath)")
     }
     
@@ -1577,6 +1784,191 @@ struct ModificationAfterCard: View {
         #endif
         print("⚠️ Image '\(named)' introuvable dans les assets")
         return nil
+    }
+}
+
+// MARK: - Avatar Produit Cards
+struct AvatarProduitImageCard: View {
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            Image("pull")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(minHeight: 200)
+                .clipped()
+                .overlay(Color.black.opacity(0.15))
+            
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Image Avatar")
+                    .font(.system(size: 16, weight: .semibold))
+                Text("Créez des avatars de produits personnalisés")
+                    .font(.system(size: 13))
+                    .foregroundColor(.white.opacity(0.85))
+                    .lineLimit(2)
+            }
+            .foregroundColor(.white)
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                LinearGradient(
+                    colors: [Color.black.opacity(0.65), Color.black.opacity(0.1)],
+                    startPoint: .bottom,
+                    endPoint: .top
+                )
+                .cornerRadius(12)
+            )
+        }
+        .frame(minHeight: 200)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 8)
+    }
+}
+
+struct AvatarProduitVideoCard: View {
+    @State private var player: AVQueuePlayer?
+    @State private var playerLooper: AVPlayerLooper?
+    
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.black.opacity(0.75))
+                .frame(minHeight: 200)
+            
+            if let player = player {
+                CustomVideoPlayer(player: player)
+                    .frame(minHeight: 200)
+                    .cornerRadius(12)
+                    .clipped()
+                    .onAppear {
+                        player.play()
+                    }
+                    .onDisappear {
+                        player.pause()
+                    }
+            } else {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.purple.opacity(0.5), Color.pink.opacity(0.3)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(minHeight: 200)
+                
+                VStack(spacing: 8) {
+                    ProgressView()
+                        .tint(.white)
+                    Text("Chargement de la vidéo...")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.8))
+                }
+            }
+            
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Vidéo Avatar")
+                    .font(.system(size: 16, weight: .semibold))
+                Text("Découvrez les avatars produits en action")
+                    .font(.system(size: 13))
+                    .foregroundColor(.white.opacity(0.85))
+                    .lineLimit(2)
+            }
+            .foregroundColor(.white)
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                LinearGradient(
+                    colors: [Color.black.opacity(0.75), Color.clear],
+                    startPoint: .bottom,
+                    endPoint: .top
+                )
+                .cornerRadius(12)
+            )
+        }
+        .frame(minHeight: 200)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 8)
+        .onAppear {
+            if player == nil {
+                loadVideo()
+            } else {
+                player?.play()
+            }
+        }
+        .onDisappear {
+            player?.pause()
+            player?.seek(to: .zero)
+            playerLooper = nil
+        }
+    }
+    
+    private func loadVideo() {
+        let baseNames = [
+            "pull_video",
+            "pull-video",
+            "PullVideo",
+            "pullVideo"
+        ]
+        let extensions = ["mp4", "mov", "m4v", "MP4", "MOV"]
+        
+        func setupPlayer(with url: URL) {
+            let item = AVPlayerItem(url: url)
+            let queuePlayer = AVQueuePlayer(playerItem: item)
+            queuePlayer.isMuted = true
+            queuePlayer.volume = 0
+            
+            let looper = AVPlayerLooper(player: queuePlayer, templateItem: item)
+            playerLooper = looper
+            player = queuePlayer
+            queuePlayer.play()
+        }
+        
+        for baseName in baseNames {
+            if let directURL = Bundle.main.url(forResource: baseName, withExtension: nil) {
+                print("✅ Vidéo Avatar '\(baseName)' trouvée (sans extension)")
+                setupPlayer(with: directURL)
+                return
+            }
+        }
+        
+        for baseName in baseNames {
+            for ext in extensions {
+                if let url = Bundle.main.url(forResource: baseName, withExtension: ext) {
+                    print("✅ Vidéo Avatar '\(baseName).\(ext)' trouvée")
+                    setupPlayer(with: url)
+                    return
+                }
+            }
+        }
+        
+        #if canImport(UIKit)
+        for baseName in baseNames {
+            if let dataAsset = NSDataAsset(name: baseName) {
+                let tempURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString)
+                    .appendingPathExtension("mp4")
+                do {
+                    try dataAsset.data.write(to: tempURL)
+                    print("✅ Vidéo Avatar '\(baseName)' chargée depuis les assets")
+                    setupPlayer(with: tempURL)
+                    return
+                } catch {
+                    print("❌ Impossible d'écrire la vidéo \(baseName): \(error)")
+                }
+            }
+        }
+        #endif
+        
+        let triedNames = baseNames.joined(separator: ", ")
+        print("❌ Vidéo Avatar introuvable (testés: \(triedNames))")
     }
 }
 

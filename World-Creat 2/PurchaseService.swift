@@ -26,9 +26,9 @@ class PurchaseService: ObservableObject {
         
         var coins: Int {
             switch self {
-            case .starter: return 9000
-            case .pro: return 24000
-            case .studio: return 50000
+            case .starter: return 10000
+            case .pro: return 22000
+            case .studio: return 35000
             }
         }
     }
@@ -150,11 +150,11 @@ class PurchaseService: ObservableObject {
     nonisolated private static func getCoinsForProductID(_ productID: String) -> Int {
         switch productID {
         case "com.worldcreat.starter":
-            return 9000
+            return 10000
         case "com.worldcreat.pro":
-            return 24000
+            return 22000
         case "com.worldcreat.studio":
-            return 50000
+            return 35000
         default:
             return 0
         }

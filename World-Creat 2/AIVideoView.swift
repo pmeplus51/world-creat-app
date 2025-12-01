@@ -314,86 +314,114 @@ struct AIVideoView: View {
                 }
             }
             
-            // Bouton générer fixe en bas
+            // Bouton générer fixe en bas - UX améliorée
             VStack {
                 Spacer()
-                HStack(spacing: 12) {
-                    Button(action: {
-                        let isGenerating = openAIService.generationStatus == .generating || generationManager.isGenerating
-                        if !promptText.isEmpty && !isGenerating {
-                            generateVideo()
+                VStack(spacing: 12) {
+                    // Affichage du coût au-dessus du bouton
+                    HStack {
+                        Spacer()
+                        HStack(spacing: 6) {
+                            Image(systemName: "dollarsign.circle.fill")
+                                .font(.system(size: 14, weight: .medium))
+                            Text("\(appState.getGenerationCost(for: .video, model: appState.selectedVideoModel.rawValue)) crédits")
+                                .font(.system(size: 13, weight: .medium))
                         }
-                    }) {
-                        HStack(spacing: 12) {
-                            if openAIService.generationStatus == .generating || generationManager.isGenerating {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.9)
-                                Text("Génération...")
-                                    .font(.system(size: 17, weight: .semibold))
-                            } else {
-                                Image(systemName: "sparkles")
-                                    .font(.system(size: 18, weight: .semibold))
-                                Text("Générer")
-                                    .font(.system(size: 17, weight: .semibold))
-                            }
-                            
-                            Spacer()
-                            
-                            HStack(spacing: 6) {
-                                Image(systemName: "dollarsign.circle.fill")
-                                    .font(.system(size: 16))
-                                Text("\(appState.getGenerationCost(for: .video, model: appState.selectedVideoModel.rawValue))")
-                                    .font(.system(size: 17, weight: .semibold))
-                            }
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
+                        .foregroundColor(.white.opacity(0.7))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
                         .background(
-                            Group {
-                                let isGenerating = openAIService.generationStatus == .generating || generationManager.isGenerating
-                                if promptText.isEmpty || isGenerating {
-                                    Color.gray.opacity(0.4)
-                                } else {
-                                    LinearGradient(
-                                        colors: [Color.purple, Color.pink],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                }
-                            }
-                        )
-                        .cornerRadius(18)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 18)
-                                .stroke(
-                                    {
-                                        let isGenerating = openAIService.generationStatus == .generating || generationManager.isGenerating
-                                        return promptText.isEmpty || isGenerating ? Color.clear : Color.purple.opacity(0.5)
-                                    }(),
-                                    lineWidth: 1
+                            Capsule()
+                                .fill(Color.white.opacity(0.1))
+                                .overlay(
+                                    Capsule()
+                                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
                                 )
                         )
-                        .shadow(
-                            color: {
-                                let isGenerating = openAIService.generationStatus == .generating || generationManager.isGenerating
-                                return promptText.isEmpty || isGenerating ? .clear : .purple.opacity(0.4)
-                            }(),
-                            radius: 12,
-                            x: 0,
-                            y: 6
-                        )
+                        .padding(.trailing, 20)
                     }
-                    .disabled({
-                        let isGenerating = openAIService.generationStatus == .generating || generationManager.isGenerating
-                        return promptText.isEmpty || isGenerating
-                    }())
                     
-                    Button(action: {
-                        downloadVideo()
-                    }) {
-                        HStack(spacing: 8) {
+                    HStack(spacing: 12) {
+                        Button(action: {
+                            let isGenerating = openAIService.generationStatus == .generating || generationManager.isGenerating
+                            if !promptText.isEmpty && !isGenerating {
+                                generateVideo()
+                            }
+                        }) {
+                            HStack(spacing: 10) {
+                                if openAIService.generationStatus == .generating || generationManager.isGenerating {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        .scaleEffect(1.0)
+                                    Text("Génération en cours...")
+                                        .font(.system(size: 17, weight: .semibold))
+                                } else {
+                                    Image(systemName: "sparkles")
+                                        .font(.system(size: 19, weight: .semibold))
+                                        .symbolEffect(.bounce, value: !promptText.isEmpty)
+                                    Text("Générer la vidéo")
+                                        .font(.system(size: 17, weight: .semibold))
+                                }
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                            .background(
+                                Group {
+                                    let isGenerating = openAIService.generationStatus == .generating || generationManager.isGenerating
+                                    if promptText.isEmpty || isGenerating {
+                                        LinearGradient(
+                                            colors: [Color.gray.opacity(0.3), Color.gray.opacity(0.2)],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    } else {
+                                        LinearGradient(
+                                            colors: [Color.purple, Color.pink, Color.purple],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    }
+                                }
+                            )
+                            .cornerRadius(20)
+                            .overlay(
+                                Group {
+                                    let isGenerating = openAIService.generationStatus == .generating || generationManager.isGenerating
+                                    if !promptText.isEmpty && !isGenerating {
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 1.5)
+                                    }
+                                }
+                            )
+                            .shadow(
+                                color: {
+                                    let isGenerating = openAIService.generationStatus == .generating || generationManager.isGenerating
+                                    return promptText.isEmpty || isGenerating ? .clear : .purple.opacity(0.5)
+                                }(),
+                                radius: 20,
+                                x: 0,
+                                y: 8
+                            )
+                            .shadow(
+                                color: {
+                                    let isGenerating = openAIService.generationStatus == .generating || generationManager.isGenerating
+                                    return promptText.isEmpty || isGenerating ? .clear : .pink.opacity(0.3)
+                                }(),
+                                radius: 30,
+                                x: 0,
+                                y: 12
+                            )
+                        }
+                        .disabled({
+                            let isGenerating = openAIService.generationStatus == .generating || generationManager.isGenerating
+                            return promptText.isEmpty || isGenerating
+                        }())
+                        
+                        Button(action: {
+                            downloadVideo()
+                        }) {
+                            HStack(spacing: 8) {
                             if isDownloading {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
@@ -435,8 +463,9 @@ struct AIVideoView: View {
                             x: 0,
                             y: 6
                         )
+                        }
+                        .disabled(!hasVideoToDownload || isDownloading)
                     }
-                    .disabled(!hasVideoToDownload || isDownloading)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 90)
