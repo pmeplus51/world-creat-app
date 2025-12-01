@@ -30,11 +30,7 @@ struct HomeView: View {
                 
                 // Titre accrocheur
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Les Trends IA Virales")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.white)
-                    
-                    Text("Faciles et Rapides")
+                    Text("L'application qui te permets de créer les meilleures adds")
                         .font(.system(size: 32, weight: .bold))
                         .foregroundStyle(
                             LinearGradient(
@@ -43,11 +39,7 @@ struct HomeView: View {
                                 endPoint: .trailing
                             )
                         )
-                    
-                    Text("Créez des vidéos virales en 2 minutes depuis votre téléphone")
-                        .font(.system(size: 16))
-                        .foregroundColor(.white.opacity(0.7))
-                        .padding(.top, 4)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
@@ -65,31 +57,31 @@ struct HomeView: View {
                         GridItem(.flexible(), spacing: 16)
                     ], spacing: 16) {
                         FeatureCard(
-                            icon: "bolt.fill",
-                            iconColor: .purple,
-                            title: "Modèles IA de Pointe",
-                            description: "Accès aux meilleurs modèles IA du marché pour une qualité professionnelle"
-                        )
-                        
-                        FeatureCard(
-                            icon: "video.fill",
-                            iconColor: .blue,
-                            title: "Génération Texte en Vidéo",
-                            description: "Créez des vidéos professionnelles à partir de simples descriptions textuelles"
-                        )
-                        
-                        FeatureCard(
-                            icon: "photo.on.rectangle.angled",
-                            iconColor: .green,
-                            title: "Transformation Image en Vidéo",
-                            description: "Animez vos images de produits pour créer des vidéos captivantes"
-                        )
-                        
-                        FeatureCard(
                             icon: "sparkles",
                             iconColor: .orange,
-                    title: "Retouche Photo IA",
-                    description: "Avec Nano Banana, retouchez photos et screenshots avec un simple prompt"
+                            title: "Retouche Photo IA",
+                            description: "Retouchez vos photos avec précision grâce à l'intelligence artificielle"
+                        )
+                        
+                        FeatureCard(
+                            icon: "megaphone.fill",
+                            iconColor: .blue,
+                            title: "Ads Ultra Réalistes",
+                            description: "Créez des publicités ultra réalistes et percutantes avec l'IA"
+                        )
+                        
+                        FeatureCard(
+                            icon: "person.fill",
+                            iconColor: .purple,
+                            title: "Avatars IA",
+                            description: "Générez des avatars personnalisés de qualité professionnelle"
+                        )
+                        
+                        FeatureCard(
+                            icon: "cart.fill",
+                            iconColor: .green,
+                            title: "Vendez n'importe quel produit",
+                            description: "World-Creat permet de vendre n'importe quel produit avec des visuels percutants"
                         )
                     }
                     .padding(.horizontal, 20)
