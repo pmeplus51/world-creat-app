@@ -87,6 +87,21 @@ class AppState: ObservableObject {
         creditsManager.addCredits(amount)
     }
     
+    // Ajouter des crédits à un compte spécifique par email (méthode admin)
+    func addCreditsToAccount(email: String, amount: Int) -> Bool {
+        // Vérifier que l'utilisateur est connecté avec cet email
+        guard isAuthenticated,
+              let currentEmail = userEmail,
+              currentEmail.lowercased() == email.lowercased() else {
+            print("❌ Impossible d'ajouter des crédits : l'utilisateur n'est pas connecté avec l'email \(email)")
+            return false
+        }
+        
+        print("✅ Ajout de \(amount) crédits au compte \(email)")
+        creditsManager.addCredits(amount)
+        return true
+    }
+    
     func deductCredits(_ amount: Int) -> Bool {
         return creditsManager.deductCredits(amount)
     }

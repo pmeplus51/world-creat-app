@@ -8,6 +8,7 @@
 import SwiftUI
 import AVKit
 import Foundation
+import Combine
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -407,6 +408,9 @@ struct HeaderView: View {
         .sheet(isPresented: $showSubscriptionView) {
             SubscriptionView()
                 .environmentObject(appState)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSubscriptionView"))) { _ in
+            showSubscriptionView = true
         }
     }
 }
@@ -1760,6 +1764,7 @@ struct MainTabView: View {
                 homeViewId = UUID()
             }
         }
+        .dismissKeyboardOnTap()
     }
     
     @ViewBuilder

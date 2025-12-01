@@ -804,43 +804,6 @@ struct MultipleImagePicker: UIViewControllerRepresentable {
 }
 #endif
 
-// Extension pour fermer le clavier au tap
-extension View {
-    func dismissKeyboardOnTap() -> some View {
-        #if canImport(UIKit)
-        return self.background(
-            TapGestureView()
-        )
-        #else
-        return self
-        #endif
-    }
-}
-
-#if canImport(UIKit)
-struct TapGestureView: UIViewRepresentable {
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
-        view.backgroundColor = .clear
-        let tapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.dismissKeyboard))
-        tapGesture.cancelsTouchesInView = false
-        view.addGestureRecognizer(tapGesture)
-        return view
-    }
-    
-    func updateUIView(_ uiView: UIView, context: Context) {}
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-    
-    class Coordinator {
-        @objc func dismissKeyboard() {
-            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-        }
-    }
-}
-#endif
 
 #Preview {
     CreateImageView()

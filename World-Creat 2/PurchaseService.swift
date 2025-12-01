@@ -83,6 +83,10 @@ class PurchaseService: ObservableObject {
                 CreditsManager.shared.addCredits(productID.coins)
             }
             
+            // Marquer que l'utilisateur a acheté et replanifier les notifications
+            NotificationService.shared.markAsPurchased()
+            NotificationService.shared.scheduleNotifications()
+            
             await transaction.finish()
             return true
             
@@ -119,6 +123,9 @@ class PurchaseService: ObservableObject {
                     // Ajouter les crédits sur le MainActor
                     await MainActor.run {
                         CreditsManager.shared.addCredits(coins)
+                        // Marquer que l'utilisateur a acheté et replanifier les notifications
+                        NotificationService.shared.markAsPurchased()
+                        NotificationService.shared.scheduleNotifications()
                     }
                     
                     await transaction.finish()

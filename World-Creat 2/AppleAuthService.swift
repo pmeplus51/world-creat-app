@@ -35,22 +35,84 @@ class AppleAuthService: NSObject, ObservableObject {
             userEmail = userDefaults.string(forKey: userEmailKey)
             userName = userDefaults.string(forKey: userNameKey)
             isAuthenticated = true
+            
+            // Vérifier et ajouter les crédits de test si nécessaire
+            addTestCreditsIfNeeded(email: userEmail)
         }
     }
     
     // Sauvegarder les informations utilisateur
     func saveUser(identifier: String, email: String?, name: String?) {
+        print("💾 Sauvegarde des informations utilisateur...")
+        print("   - Identifier: \(identifier)")
+        print("   - Email reçu: \(email ?? "nil")")
+        print("   - Name reçu: \(name ?? "nil")")
+        
+        // Sauvegarder l'identifier (toujours présent)
         userDefaults.set(identifier, forKey: userIdentifierKey)
-        if let email = email {
+        
+        // Pour l'email : utiliser celui fourni, sinon garder l'existant
+        let finalEmail: String?
+        if let email = email, !email.isEmpty {
             userDefaults.set(email, forKey: userEmailKey)
+            finalEmail = email
+        } else {
+            // Garder l'email existant s'il y en a un
+            finalEmail = userDefaults.string(forKey: userEmailKey)
         }
-        if let name = name {
+        
+        // Pour le nom : utiliser celui fourni, sinon garder l'existant
+        let finalName: String?
+        if let name = name, !name.isEmpty {
             userDefaults.set(name, forKey: userNameKey)
+            finalName = name
+        } else {
+            // Garder le nom existant s'il y en a un
+            finalName = userDefaults.string(forKey: userNameKey)
         }
+        
+        // Synchroniser UserDefaults
+        userDefaults.synchronize()
+        
+        // Mettre à jour les propriétés publiées sur le thread principal
+        // Cela déclenchera automatiquement les observers
         userIdentifier = identifier
-        userEmail = email
-        userName = name
+        userEmail = finalEmail
+        userName = finalName
         isAuthenticated = true
+        
+        // Forcer la publication des changements
+        objectWillChange.send()
+        
+        print("✅ Informations sauvegardées - Authentifié: \(isAuthenticated)")
+        print("   - Email final: \(userEmail ?? "nil")")
+        print("   - Name final: \(userName ?? "nil")")
+        print("   - Identifier final: \(userIdentifier ?? "nil")")
+        
+        // Ajouter des crédits gratuits uniquement pour votre compte de test
+        addTestCreditsIfNeeded(email: finalEmail)
+    }
+    
+    // Ajouter des crédits de test uniquement pour votre compte
+    private func addTestCreditsIfNeeded(email: String?) {
+        guard let email = email else { return }
+        
+        let testEmail = "theo.toulemonde@icloud.com"
+        let creditsKey = "test_credits_added_\(testEmail)"
+        
+        // Vérifier si c'est votre email de test
+        if email.lowercased() == testEmail.lowercased() {
+            // Vérifier si on a déjà ajouté les crédits
+            if !userDefaults.bool(forKey: creditsKey) {
+                let creditsToAdd = 5000
+                CreditsManager.shared.addCredits(creditsToAdd)
+                userDefaults.set(true, forKey: creditsKey)
+                userDefaults.synchronize()
+                print("🎁 \(creditsToAdd) crédits de test ajoutés pour \(testEmail)")
+            } else {
+                print("ℹ️ Les crédits de test ont déjà été ajoutés pour \(testEmail)")
+            }
+        }
     }
     
     // Supprimer les informations utilisateur

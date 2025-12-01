@@ -61,7 +61,10 @@ struct LoginView: View {
                 SignInWithAppleButton(.signIn) { request in
                     request.requestedScopes = [.fullName, .email]
                 } onCompletion: { result in
-                    handleSignInResult(result)
+                    // S'assurer que le callback est exécuté sur le thread principal
+                    DispatchQueue.main.async {
+                        handleSignInResult(result)
+                    }
                 }
                 .signInWithAppleButtonStyle(.white)
                 .frame(height: 56)
@@ -103,10 +106,18 @@ struct LoginView: View {
         case .success(let authorization):
             if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
                 let userIdentifier = appleIDCredential.user
-                let email = appleIDCredential.email
-                let fullName = appleIDCredential.fullName
                 
-                // Construire le nom complet si disponible
+                // Lors de la première connexion, email et fullName sont disponibles
+                // Lors des connexions suivantes, ils sont nil, il faut récupérer depuis UserDefaults
+                var email = appleIDCredential.email
+                var fullName = appleIDCredential.fullName
+                
+                // Si l'email n'est pas disponible (connexion suivante), récupérer depuis UserDefaults
+                if email == nil {
+                    email = UserDefaults.standard.string(forKey: "apple_user_email")
+                }
+                
+                // Si le nom n'est pas disponible, récupérer depuis UserDefaults
                 var name: String? = nil
                 if let givenName = fullName?.givenName, let familyName = fullName?.familyName {
                     name = "\(givenName) \(familyName)"
@@ -114,19 +125,56 @@ struct LoginView: View {
                     name = givenName
                 } else if let familyName = fullName?.familyName {
                     name = familyName
+                } else {
+                    // Récupérer depuis UserDefaults si disponible
+                    name = UserDefaults.standard.string(forKey: "apple_user_name")
                 }
                 
-                // Sauvegarder via le service
+                print("✅ Connexion Apple réussie - ID: \(userIdentifier)")
+                print("📧 Email: \(email ?? "non disponible")")
+                print("👤 Nom: \(name ?? "non disponible")")
+                
+                // Sauvegarder via le service sur le thread principal
                 Task { @MainActor in
                     authService.saveUser(identifier: userIdentifier, email: email, name: name)
+                    
+                    // Vérifier que l'état est bien mis à jour
+                    print("🔍 État d'authentification après sauvegarde: \(authService.isAuthenticated)")
+                    
+                    // Attendre un peu pour s'assurer que l'état est propagé
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconde
+                    
                     // Fermer automatiquement la vue de connexion après succès
                     dismiss()
                 }
+            } else {
+                print("❌ Le credential n'est pas un ASAuthorizationAppleIDCredential")
+                errorMessage = "Type de credential non supporté"
+                showError = true
             }
         case .failure(let error):
-            errorMessage = error.localizedDescription
+            let errorDescription = error.localizedDescription
+            errorMessage = errorDescription
             showError = true
-            print("❌ Erreur de connexion: \(error.localizedDescription)")
+            print("❌ Erreur de connexion: \(errorDescription)")
+            
+            // Afficher plus de détails sur l'erreur
+            if let authError = error as? ASAuthorizationError {
+                switch authError.code {
+                case .canceled:
+                    print("⚠️ L'utilisateur a annulé la connexion")
+                case .failed:
+                    print("⚠️ La connexion a échoué")
+                case .invalidResponse:
+                    print("⚠️ Réponse invalide")
+                case .notHandled:
+                    print("⚠️ Erreur non gérée")
+                case .unknown:
+                    print("⚠️ Erreur inconnue")
+                @unknown default:
+                    print("⚠️ Erreur inconnue (code: \(authError.code.rawValue))")
+                }
+            }
         }
     }
 }
