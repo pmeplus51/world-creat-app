@@ -95,6 +95,5 @@ iOSInjectionProject/
 # Secrets and API keys (if you have any)
 *.plist
 !Info.plist
-APIConfig.swift
-# Uncomment the line above if APIConfig.swift contains sensitive information
+# APIConfig.swift est maintenant versionné pour synchroniser les URLs entre développeurs
 
