@@ -13,6 +13,12 @@ struct ProfileView: View {
     @State private var selectedContentType: ContentType = .image
     @State private var showLoginView = false
     @State private var showSubscriptionView = false
+    @State private var debugEmail: String? = nil
+    
+    // Propriété calculée pour obtenir l'email depuis UserDefaults directement
+    private var userEmailFromDefaults: String? {
+        UserDefaults.standard.string(forKey: "apple_user_email")
+    }
     
     enum ContentType {
         case image
@@ -66,11 +72,48 @@ struct ProfileView: View {
                                     .font(.system(size: 14))
                                     .foregroundColor(.white.opacity(0.7))
                                 
-                                Text(appState.userEmail?.isEmpty == false ? appState.userEmail! : (appState.userName?.isEmpty == false ? appState.userName! : "Utilisateur"))
+                                // Afficher l'email en priorité, puis le nom, puis "Compte Apple"
+                                // Vérifier aussi directement dans UserDefaults au cas où
+                                let displayText: String = {
+                                    // Essayer d'abord depuis appState
+                                    if let email = appState.userEmail, !email.isEmpty {
+                                        return email
+                                    }
+                                    // Sinon, essayer directement depuis UserDefaults
+                                    if let email = userEmailFromDefaults, !email.isEmpty {
+                                        return email
+                                    }
+                                    // Sinon, essayer le nom
+                                    if let name = appState.userName, !name.isEmpty {
+                                        return name
+                                    }
+                                    // Sinon, "Compte Apple"
+                                    return "Compte Apple"
+                                }()
+                                
+                                Text(displayText)
                                     .textSelection(.enabled)
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundColor(.white)
                                     .lineLimit(1)
+                                    .onAppear {
+                                        // Debug: afficher les valeurs dans la console
+                                        print("🔍 ProfileView - Affichage utilisateur:")
+                                        print("   - appState.userEmail: \(appState.userEmail ?? "nil")")
+                                        print("   - appState.userName: \(appState.userName ?? "nil")")
+                                        print("   - userEmailFromDefaults: \(userEmailFromDefaults ?? "nil")")
+                                        print("   - Display: \(displayText)")
+                                        
+                                        // Si l'email existe dans UserDefaults mais pas dans appState, forcer la mise à jour
+                                        if let emailFromDefaults = userEmailFromDefaults,
+                                           appState.userEmail == nil || appState.userEmail?.isEmpty == true {
+                                            print("⚠️ Email trouvé dans UserDefaults mais pas dans appState, mise à jour nécessaire")
+                                            // Forcer la mise à jour via le service
+                                            Task { @MainActor in
+                                                AppleAuthService.shared.userEmail = emailFromDefaults
+                                            }
+                                        }
+                                    }
                             } else {
                                 Text("Non connecté")
                                     .font(.system(size: 14))
@@ -310,6 +353,32 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showSubscriptionView) {
             SubscriptionView()
+        }
+        .onAppear {
+            // Forcer la vérification de l'email au chargement de la vue
+            if appState.isAuthenticated {
+                // Vérifier si l'email existe dans UserDefaults mais pas dans appState
+                if let emailFromDefaults = UserDefaults.standard.string(forKey: "apple_user_email"),
+                   (appState.userEmail == nil || appState.userEmail?.isEmpty == true) {
+                    print("🔄 Mise à jour de l'email depuis UserDefaults: \(emailFromDefaults)")
+                    // Forcer la mise à jour via le service
+                    Task { @MainActor in
+                        AppleAuthService.shared.userEmail = emailFromDefaults
+                    }
+                }
+            }
+        }
+        .onChange(of: appState.isAuthenticated) { oldValue, newValue in
+            // Quand l'utilisateur se connecte, vérifier l'email
+            if newValue {
+                if let emailFromDefaults = UserDefaults.standard.string(forKey: "apple_user_email"),
+                   (appState.userEmail == nil || appState.userEmail?.isEmpty == true) {
+                    print("🔄 Mise à jour de l'email après connexion: \(emailFromDefaults)")
+                    Task { @MainActor in
+                        AppleAuthService.shared.userEmail = emailFromDefaults
+                    }
+                }
+            }
         }
     }
 }

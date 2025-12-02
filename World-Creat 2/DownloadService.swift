@@ -84,7 +84,7 @@ class DownloadService {
         // Utiliser une continuation pour éviter le freeze
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             PHPhotoLibrary.shared().performChanges({
-                PHAssetChangeRequest.creationRequestForAsset(from: image)
+            PHAssetChangeRequest.creationRequestForAsset(from: image)
             }, completionHandler: { success, error in
                 if let error = error {
                     continuation.resume(throwing: error)
@@ -108,7 +108,7 @@ class DownloadService {
         // Utiliser une continuation pour éviter le freeze
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             PHPhotoLibrary.shared().performChanges({
-                PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
+            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
             }, completionHandler: { success, error in
                 if let error = error {
                     continuation.resume(throwing: error)

@@ -14,11 +14,18 @@ class AppState: ObservableObject {
     
     @Published var selectedAIModel: AIModel = .nanoBanana
     @Published var selectedVideoModel: VideoModel = .sora2
-    @Published var generationHistory: [GenerationItem] = []
+    @Published var generationHistory: [GenerationItem] = [] {
+        didSet {
+            saveGenerationHistory()
+        }
+    }
     
     private let creditsManager = CreditsManager.shared
     private let authService = AppleAuthService.shared
     private var cancellables = Set<AnyCancellable>()
+    
+    private let defaults = UserDefaults.standard
+    private let generationHistoryKey = "generationHistory"
     
     // Propriétés d'authentification
     var isAuthenticated: Bool {
@@ -55,6 +62,9 @@ class AppState: ObservableObject {
     }
     
     private init() {
+        // Charger l'historique sauvegardé
+        loadGenerationHistory()
+        
         // Observer les changements de crédits
         creditsManager.$credits
             .sink { [weak self] _ in
@@ -66,12 +76,16 @@ class AppState: ObservableObject {
         authService.$isAuthenticated
             .sink { [weak self] _ in
                 self?.objectWillChange.send()
+                // Vérifier et donner les crédits bonus si nécessaire
+                self?.checkAndGiveBonusCredits()
             }
             .store(in: &cancellables)
         
         authService.$userEmail
             .sink { [weak self] _ in
                 self?.objectWillChange.send()
+                // Vérifier et donner les crédits bonus si nécessaire
+                self?.checkAndGiveBonusCredits()
             }
             .store(in: &cancellables)
         
@@ -80,6 +94,45 @@ class AppState: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
+        
+        // Vérifier au démarrage si l'utilisateur est déjà connecté
+        checkAndGiveBonusCredits()
+    }
+    
+    // Vérifier et donner des crédits bonus à des utilisateurs spécifiques
+    private func checkAndGiveBonusCredits() {
+        guard isAuthenticated,
+              let email = userEmail?.lowercased() else {
+            return
+        }
+        
+        // Clé pour vérifier si les crédits ont déjà été donnés
+        let bonusCreditsKey = "bonusCredits_\(email)"
+        let hasReceivedBonus = defaults.bool(forKey: bonusCreditsKey)
+        
+        // Donner 100 000 crédits à nath.vanparys@icloud.com (une seule fois)
+        if email == "nath.vanparys@icloud.com" && !hasReceivedBonus {
+            creditsManager.addCredits(100000)
+            defaults.set(true, forKey: bonusCreditsKey)
+            defaults.synchronize()
+            print("✅ 100 000 crédits ajoutés au compte \(email)")
+        }
+    }
+    
+    // Sauvegarder l'historique dans UserDefaults
+    private func saveGenerationHistory() {
+        if let encoded = try? JSONEncoder().encode(generationHistory) {
+            defaults.set(encoded, forKey: generationHistoryKey)
+            defaults.synchronize()
+        }
+    }
+    
+    // Charger l'historique depuis UserDefaults
+    private func loadGenerationHistory() {
+        if let data = defaults.data(forKey: generationHistoryKey),
+           let decoded = try? JSONDecoder().decode([GenerationItem].self, from: data) {
+            generationHistory = decoded
+        }
     }
     
     // Méthodes pour gérer les crédits
@@ -155,15 +208,24 @@ enum VideoModel: String, CaseIterable {
     }
 }
 
-struct GenerationItem: Identifiable {
-    let id = UUID()
+struct GenerationItem: Identifiable, Codable {
+    let id: UUID
     let type: GenerationType
     let prompt: String
     let resultURL: String?
     let createdAt: Date
     let model: String
     
-    enum GenerationType {
+    init(id: UUID = UUID(), type: GenerationType, prompt: String, resultURL: String?, createdAt: Date, model: String) {
+        self.id = id
+        self.type = type
+        self.prompt = prompt
+        self.resultURL = resultURL
+        self.createdAt = createdAt
+        self.model = model
+    }
+    
+    enum GenerationType: String, Codable {
         case image
         case video
     }

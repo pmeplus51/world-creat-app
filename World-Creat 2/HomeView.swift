@@ -2142,6 +2142,26 @@ struct MainTabView: View {
                 endPoint: .bottom
             )
         )
+        .gesture(
+            DragGesture(minimumDistance: 50)
+                .onEnded { value in
+                    // Swipe vers la gauche (translation.width < 0) = aller vers l'onglet suivant
+                    // Swipe vers la droite (translation.width > 0) = aller vers l'onglet précédent
+                    let horizontalMovement = value.translation.width
+                    let verticalMovement = abs(value.translation.height)
+                    
+                    // Ne réagir que si le mouvement horizontal est plus important que le vertical
+                    if abs(horizontalMovement) > verticalMovement {
+                        if horizontalMovement < -50 {
+                            // Swipe vers la gauche = aller vers l'onglet suivant
+                            navigateToNextTab()
+                        } else if horizontalMovement > 50 {
+                            // Swipe vers la droite = aller vers l'onglet précédent
+                            navigateToPreviousTab()
+                        }
+                    }
+                }
+        )
         .onChange(of: selectedTab) { oldValue, newValue in
             // Quand on revient sur l'onglet home, forcer la réinitialisation
             if newValue == .home && oldValue != .home {
@@ -2149,6 +2169,36 @@ struct MainTabView: View {
             }
         }
         .dismissKeyboardOnTap()
+    }
+    
+    // Navigation vers l'onglet suivant
+    private func navigateToNextTab() {
+        let allTabs = AppTab.allCases
+        if let currentIndex = allTabs.firstIndex(of: selectedTab),
+           currentIndex < allTabs.count - 1 {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                selectedTab = allTabs[currentIndex + 1]
+            }
+            // Fermer le clavier lors du changement d'onglet
+            #if canImport(UIKit)
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            #endif
+        }
+    }
+    
+    // Navigation vers l'onglet précédent
+    private func navigateToPreviousTab() {
+        let allTabs = AppTab.allCases
+        if let currentIndex = allTabs.firstIndex(of: selectedTab),
+           currentIndex > 0 {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                selectedTab = allTabs[currentIndex - 1]
+            }
+            // Fermer le clavier lors du changement d'onglet
+            #if canImport(UIKit)
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            #endif
+        }
     }
     
     @ViewBuilder

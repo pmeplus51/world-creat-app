@@ -36,6 +36,14 @@ class AppleAuthService: NSObject, ObservableObject {
             userName = userDefaults.string(forKey: userNameKey)
             isAuthenticated = true
             
+            // Forcer la publication des changements
+            objectWillChange.send()
+            
+            print("📱 Utilisateur chargé au démarrage:")
+            print("   - Email: \(userEmail ?? "nil")")
+            print("   - Name: \(userName ?? "nil")")
+            print("   - Identifier: \(identifier)")
+            
             // Vérifier et ajouter les crédits de test si nécessaire
             addTestCreditsIfNeeded(email: userEmail)
         }

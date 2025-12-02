@@ -125,9 +125,6 @@ struct CreateImageView: View {
                                     .padding(14)
                                     .background(Color(red: 0.12, green: 0.12, blue: 0.15))
                                     .cornerRadius(14)
-                                    .onTapGesture {
-                                        // Ne pas fermer le clavier quand on tape dans le TextEditor
-                                    }
                                 
                                 if promptText.isEmpty {
                                     Text("Décrivez votre image...")
@@ -321,30 +318,82 @@ struct CreateImageView: View {
                     // Espace pour le bouton fixe
                     Spacer(minLength: 100)
                 }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    #if canImport(UIKit)
+                    UIApplication.shared.sendAction(
+                        #selector(UIResponder.resignFirstResponder),
+                        to: nil,
+                        from: nil,
+                        for: nil
+                    )
+                    #endif
+                }
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 10)
+                        .onEnded { value in
+                            // Si le swipe est vers le bas, fermer le clavier
+                            if value.translation.height > 30 && abs(value.translation.width) < abs(value.translation.height) {
+                                #if canImport(UIKit)
+                                UIApplication.shared.sendAction(
+                                    #selector(UIResponder.resignFirstResponder),
+                                    to: nil,
+                                    from: nil,
+                                    for: nil
+                                )
+                                #endif
+                            }
+                        }
+                )
             }
             
             // Boutons générer et télécharger fixe en bas
             VStack {
                 Spacer()
-                HStack(spacing: 12) {
-                    GenerateImageButton(
-                        generationManager: generationManager,
-                        isGenerating: isGenerating,
-                        prompt: promptText,
-                        cost: appState.getGenerationCost(for: .image),
-                        onGenerate: {
-                            generateImage()
+                VStack(spacing: 12) {
+                    // Affichage du coût au-dessus du bouton (déplacé à gauche)
+                    HStack {
+                        HStack(spacing: 6) {
+                            Image(systemName: "dollarsign.circle.fill")
+                                .font(.system(size: 14, weight: .medium))
+                            Text("\(appState.getGenerationCost(for: .image)) crédits")
+                                .font(.system(size: 13, weight: .medium))
                         }
-                    )
+                        .foregroundColor(.white.opacity(0.7))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(Color.white.opacity(0.1))
+                                .overlay(
+                                    Capsule()
+                                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                                )
+                        )
+                        .padding(.leading, 20)
+                        Spacer()
+                    }
                     
-                    DownloadImageButton(
-                        isDownloading: isDownloading,
-                        hasImageToDownload: generatedImageURL != nil,
-                        onDownload: {
-                            downloadImage()
-                        }
-                    )
+                    HStack(spacing: 12) {
+                        GenerateImageButton(
+                            generationManager: generationManager,
+                            isGenerating: isGenerating,
+                            prompt: promptText,
+                            onGenerate: {
+                                generateImage()
+                            }
+                        )
+                        
+                        DownloadImageButton(
+                            isDownloading: isDownloading,
+                            hasImageToDownload: generatedImageURL != nil,
+                            onDownload: {
+                                downloadImage()
+                            }
+                        )
+                    }
                 }
+                .padding(.horizontal, 20)
                 .padding(.bottom, 90)
             }
         }
@@ -468,19 +517,13 @@ struct CreateImageView: View {
             return
         }
         
-        // DÉSACTIVÉ TEMPORAIREMENT : Vérification et déduction des crédits pour les tests
-        // let cost = appState.getGenerationCost(for: .image)
-        // guard appState.hasEnoughCredits(for: cost) else {
-        //     errorMessage = "Vous n'avez pas assez de crédits. Veuillez en acheter."
-        //     showError = true
-        //     return
-        // }
-        // 
-        // guard appState.deductCredits(cost) else {
-        //     errorMessage = "Erreur lors de la déduction des crédits."
-        //     showError = true
-        //     return
-        // }
+        // Vérifier que l'utilisateur a assez de crédits (mais ne pas les déduire maintenant)
+        let cost = appState.getGenerationCost(for: .image)
+        guard appState.hasEnoughCredits(for: cost) else {
+            errorMessage = "Vous n'avez pas assez de crédits. Veuillez en acheter."
+            showError = true
+            return
+        }
         
         isGenerating = true
         generatedImageURL = nil // Effacer l'image précédente
@@ -500,6 +543,10 @@ struct CreateImageView: View {
                     isGenerating = false
                     generatedImageURL = imageURL
                     errorImageMessage = nil // Effacer l'erreur précédente si succès
+                    
+                    // Déduire les crédits seulement en cas de succès
+                    _ = appState.deductCredits(cost)
+                    
                     // Ajouter à l'historique
                     appState.generationHistory.insert(
                         GenerationItem(
@@ -526,8 +573,7 @@ struct CreateImageView: View {
                     errorImageMessage = errorMsg
                     generatedImageURL = nil // S'assurer qu'on n'affiche pas d'image
                     showError = true
-                    // DÉSACTIVÉ TEMPORAIREMENT : Remboursement des crédits en cas d'erreur
-                    // appState.addCredits(deductedCost)
+                    // Pas de déduction de crédits en cas d'erreur ou timeout
                     imageService.resetStatus()
                 }
             }
@@ -578,7 +624,6 @@ struct GenerateImageButton: View {
     @ObservedObject var generationManager: GenerationManager
     let isGenerating: Bool
     let prompt: String
-    let cost: Int
     let onGenerate: () -> Void
     
     private var isDisabled: Bool {
@@ -591,63 +636,75 @@ struct GenerateImageButton: View {
                 onGenerate()
             }
         }) {
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 if isGenerating || generationManager.isGenerating {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        .scaleEffect(0.9)
-                    Text("Génération...")
+                        .scaleEffect(1.0)
+                    Text("Génération en cours...")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.white)
                 } else {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 19, weight: .semibold))
+                        .symbolEffect(.bounce, value: !prompt.isEmpty)
                     Text("Générer")
-                        .font(.system(size: 17, weight: .semibold))
-                }
-                
-                Spacer()
-                
-                HStack(spacing: 6) {
-                    Image(systemName: "dollarsign.circle.fill")
-                        .font(.system(size: 16))
-                    Text("\(cost)")
                         .font(.system(size: 17, weight: .semibold))
                 }
             }
             .foregroundColor(.white)
-            .padding(.horizontal, 24)
-            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 18)
             .background(
                 Group {
-                    if isDisabled {
-                        Color.gray.opacity(0.4)
+                    let isGenerating = isGenerating || generationManager.isGenerating
+                    if prompt.isEmpty || isGenerating {
+                        LinearGradient(
+                            colors: [Color.gray.opacity(0.3), Color.gray.opacity(0.2)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
                     } else {
                         LinearGradient(
-                            colors: [Color.purple, Color.pink],
+                            colors: [Color.purple, Color.pink, Color.purple],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     }
                 }
             )
-            .cornerRadius(18)
+            .cornerRadius(20)
             .overlay(
-                RoundedRectangle(cornerRadius: 18)
-                    .stroke(
-                        isDisabled ? Color.clear : Color.purple.opacity(0.5),
-                        lineWidth: 1
-                    )
+                Group {
+                    let isGenerating = isGenerating || generationManager.isGenerating
+                    if !prompt.isEmpty && !isGenerating {
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.white.opacity(0.25), lineWidth: 1.5)
+                    }
+                }
             )
             .shadow(
-                color: isDisabled ? .clear : .purple.opacity(0.4),
-                radius: 12,
+                color: {
+                    let isGenerating = isGenerating || generationManager.isGenerating
+                    return prompt.isEmpty || isGenerating ? .clear : .purple.opacity(0.5)
+                }(),
+                radius: 20,
                 x: 0,
-                y: 6
+                y: 8
+            )
+            .shadow(
+                color: {
+                    let isGenerating = isGenerating || generationManager.isGenerating
+                    return prompt.isEmpty || isGenerating ? .clear : .pink.opacity(0.3)
+                }(),
+                radius: 30,
+                x: 0,
+                y: 12
             )
         }
-        .disabled(isDisabled)
-        .padding(.horizontal, 20)
+        .disabled({
+            let isGenerating = isGenerating || generationManager.isGenerating
+            return prompt.isEmpty || isGenerating
+        }())
     }
 }
 

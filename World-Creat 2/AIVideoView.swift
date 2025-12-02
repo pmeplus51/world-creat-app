@@ -181,9 +181,6 @@ struct AIVideoView: View {
                                     .padding(14)
                                     .background(Color(red: 0.12, green: 0.12, blue: 0.15))
                                     .cornerRadius(14)
-                                    .onTapGesture {
-                                        // Ne pas fermer le clavier quand on tape dans le TextEditor
-                                    }
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 14)
                                             .stroke(
@@ -312,15 +309,41 @@ struct AIVideoView: View {
                     // Espace pour le bouton fixe
                     Spacer(minLength: 100)
                 }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    #if canImport(UIKit)
+                    UIApplication.shared.sendAction(
+                        #selector(UIResponder.resignFirstResponder),
+                        to: nil,
+                        from: nil,
+                        for: nil
+                    )
+                    #endif
+                }
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 10)
+                        .onEnded { value in
+                            // Si le swipe est vers le bas, fermer le clavier
+                            if value.translation.height > 30 && abs(value.translation.width) < abs(value.translation.height) {
+                                #if canImport(UIKit)
+                                UIApplication.shared.sendAction(
+                                    #selector(UIResponder.resignFirstResponder),
+                                    to: nil,
+                                    from: nil,
+                                    for: nil
+                                )
+                                #endif
+                            }
+                        }
+                )
             }
             
             // Bouton générer fixe en bas - UX améliorée
             VStack {
                 Spacer()
                 VStack(spacing: 12) {
-                    // Affichage du coût au-dessus du bouton
+                    // Affichage du coût au-dessus du bouton (déplacé à gauche)
                     HStack {
-                        Spacer()
                         HStack(spacing: 6) {
                             Image(systemName: "dollarsign.circle.fill")
                                 .font(.system(size: 14, weight: .medium))
@@ -338,7 +361,8 @@ struct AIVideoView: View {
                                         .stroke(Color.white.opacity(0.15), lineWidth: 1)
                                 )
                         )
-                        .padding(.trailing, 20)
+                        .padding(.leading, 20)
+                        Spacer()
                     }
                     
                     HStack(spacing: 12) {
@@ -594,8 +618,11 @@ struct AIVideoView: View {
         case .success(let url):
             generatedVideoURL = url
             errorVideoMessage = nil
-            // Ne plus afficher l'alert, la vidéo sera affichée directement
-            // showVideoResult = true
+            
+            // Déduire les crédits seulement en cas de succès
+            let cost = appState.getGenerationCost(for: .video, model: appState.selectedVideoModel.rawValue)
+            _ = appState.deductCredits(cost)
+            
             // Ajouter à l'historique
             appState.generationHistory.insert(
                 GenerationItem(
@@ -612,8 +639,7 @@ struct AIVideoView: View {
             errorVideoMessage = message
             showError = true
             generatedVideoURL = nil
-            // Remboursement des crédits en cas d'erreur
-            // Le coût déduit sera remboursé dans generateVideo() en cas d'erreur
+            // Pas de déduction de crédits en cas d'erreur ou timeout
         case .idle:
             generatedVideoURL = nil
             errorVideoMessage = nil
@@ -636,21 +662,13 @@ struct AIVideoView: View {
             return
         }
         
-        // Vérification et déduction des crédits
+        // Vérifier que l'utilisateur a assez de crédits (mais ne pas les déduire maintenant)
         let cost = appState.getGenerationCost(for: .video, model: appState.selectedVideoModel.rawValue)
         guard appState.hasEnoughCredits(for: cost) else {
             errorMessage = "Vous n'avez pas assez de crédits. Veuillez en acheter."
             showError = true
             return
         }
-        
-        guard appState.deductCredits(cost) else {
-            errorMessage = "Erreur lors de la déduction des crédits."
-            showError = true
-            return
-        }
-        
-        let deductedCost = cost // Capturer le coût pour le remboursement en cas d'erreur
         
         generatedVideoURL = nil
         errorVideoMessage = nil
@@ -676,8 +694,7 @@ struct AIVideoView: View {
                         errorVideoMessage = error.localizedDescription
                     }
                     showError = true
-                    // Remboursement des crédits en cas d'erreur
-                    appState.addCredits(deductedCost)
+                    // Pas de déduction de crédits en cas d'erreur ou timeout
                 }
             }
         }

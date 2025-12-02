@@ -41,9 +41,9 @@ struct SubscriptionView: View {
         var defaultPrice: String {
             // Prix par défaut (sera remplacé par le prix StoreKit si disponible)
             switch self {
-            case .starter: return "9,99 € HT"
-            case .pro: return "19,99 € HT"
-            case .studio: return "29,99 € HT"
+            case .starter: return "9,99 €"
+            case .pro: return "19,99 €"
+            case .studio: return "29,99 €"
             }
         }
         
