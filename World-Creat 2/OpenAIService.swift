@@ -120,6 +120,10 @@ class OpenAIService: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
+        // Ajouter un timeout de 60 secondes pour la requête initiale
+        let timeoutInterval: TimeInterval = 60.0
+        request.timeoutInterval = timeoutInterval
+        
         // Créer le body de la requête pour le webhook
         var requestBody: [String: Any] = [
             "jobId": jobId,
@@ -137,17 +141,26 @@ class OpenAIService: ObservableObject {
         
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+            print("🎬 [Video Generation] Requête envoyée - JobID: \(jobId), Model: \(model), Format: \(aspectRatio)")
         } catch {
             let errorMessage = "Erreur lors de la préparation de la requête"
+            print("❌ [Video Generation] Erreur préparation: \(error.localizedDescription)")
             await MainActor.run {
                 self.generationStatus = .error(errorMessage)
             }
             throw error
         }
         
-        // Effectuer la requête vers le webhook
+        // Effectuer la requête vers le webhook avec une session configurée pour le timeout
         do {
-            let (data, response) = try await session.data(for: request)
+            let config = URLSessionConfiguration.default
+            config.timeoutIntervalForRequest = timeoutInterval
+            config.timeoutIntervalForResource = timeoutInterval
+            let sessionWithTimeout = URLSession(configuration: config)
+            
+            print("🔄 [Video Generation] Envoi de la requête vers le webhook...")
+            let (data, response) = try await sessionWithTimeout.data(for: request)
+            print("✅ [Video Generation] Réponse reçue du webhook")
             
             guard let httpResponse = response as? HTTPURLResponse else {
                 let errorMessage = "Réponse invalide du serveur"
@@ -158,30 +171,76 @@ class OpenAIService: ObservableObject {
             }
             
             if httpResponse.statusCode == 200 || httpResponse.statusCode == 201 {
+                // Parser la réponse pour vérifier qu'elle est valide
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    print("📥 [Video Generation] Réponse JSON: \(json)")
+                    
+                    // Vérifier s'il y a un message d'erreur dans la réponse initiale
+                    if let errorMsg = json["errorMessage"] as? String, !errorMsg.isEmpty {
+                        let errorMessage = "Erreur du serveur: \(errorMsg)"
+                        print("❌ [Video Generation] Erreur dans la réponse: \(errorMessage)")
+                        await MainActor.run {
+                            self.generationStatus = .error(errorMessage)
+                            self.generationManager.stopGeneration()
+                            self.saveState()
+                        }
+                        throw NSError(domain: "OpenAIService", code: -1, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                    }
+                    
+                    // Vérifier si le jobId est confirmé dans la réponse
+                    if let responseJobId = json["jobId"] as? String {
+                        print("✅ [Video Generation] JobID confirmé par le serveur: \(responseJobId)")
+                    }
+                } else {
+                    // Si la réponse n'est pas du JSON valide, logger mais continuer
+                    if let responseString = String(data: data, encoding: .utf8) {
+                        print("⚠️ [Video Generation] Réponse non-JSON reçue: \(responseString)")
+                    }
+                }
+                
                 // Sauvegarder le jobId et démarrer le polling après 3 minutes
                 defaults.set(jobId, forKey: currentJobIdKey)
                 defaults.set(true, forKey: isGeneratingVideoKey)
                 defaults.synchronize()
                 
+                print("⏳ [Video Generation] Attente de 3 minutes avant de commencer le polling...")
                 // Attendre 3 minutes puis commencer le polling
                 try await Task.sleep(nanoseconds: 3 * 60 * 1_000_000_000) // 3 minutes
                 
+                print("🔍 [Video Generation] Début du polling pour JobID: \(jobId)")
                 // Démarrer le polling (continue en arrière-plan même si on change de page)
                 return try await pollVideoStatus(jobId: jobId)
             } else {
                 // Gérer les erreurs HTTP avec un message user-friendly
+                print("❌ [Video Generation] Erreur HTTP \(httpResponse.statusCode)")
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("📥 [Video Generation] Réponse d'erreur: \(responseString)")
+                }
                 let errorMessage = getErrorMessage(from: httpResponse.statusCode, responseData: data)
                 await MainActor.run {
                     self.generationStatus = .error(errorMessage)
                     self.generationManager.stopGeneration()
+                    self.saveState()
                 }
                 throw NSError(domain: "OpenAIService", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])
             }
-        } catch {
-            let errorMessage = getErrorMessage(from: error)
+        } catch let error as URLError where error.code == .timedOut {
+            // Timeout après 60 secondes
+            let errorMessage = "La requête a pris trop de temps. Vérifiez votre connexion et réessayez."
+            print("⏱️ [Video Generation] Timeout de la requête")
             await MainActor.run {
                 self.generationStatus = .error(errorMessage)
                 self.generationManager.stopGeneration()
+                self.saveState()
+            }
+            throw NSError(domain: "OpenAIService", code: -1, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+        } catch {
+            let errorMessage = getErrorMessage(from: error)
+            print("❌ [Video Generation] Erreur: \(error.localizedDescription)")
+            await MainActor.run {
+                self.generationStatus = .error(errorMessage)
+                self.generationManager.stopGeneration()
+                self.saveState()
             }
             throw error
         }
@@ -192,11 +251,19 @@ class OpenAIService: ObservableObject {
         let maxDuration: TimeInterval = 8 * 60 // 8 minutes maximum
         let pollingInterval: TimeInterval = 30 // 30 secondes entre chaque requête
         let startTime = Date()
+        var attemptCount = 0
+        
+        print("🔍 [Video Polling] Début du polling pour JobID: \(jobId)")
         
         while Date().timeIntervalSince(startTime) < maxDuration {
+            attemptCount += 1
+            let elapsedTime = Date().timeIntervalSince(startTime)
+            print("🔄 [Video Polling] Tentative #\(attemptCount) après \(Int(elapsedTime))s")
+            
             // Vérifier si on a dépassé le temps maximum
             if Date().timeIntervalSince(startTime) >= maxDuration {
                 let errorMessage = "Le temps imparti est écoulé. La génération a pris plus de 8 minutes."
+                print("⏱️ [Video Polling] Timeout après \(attemptCount) tentatives")
                 await MainActor.run {
                     self.generationStatus = .error(errorMessage)
                     self.generationManager.stopGeneration()
@@ -210,6 +277,7 @@ class OpenAIService: ObservableObject {
             // Faire une requête de polling
             guard let pollingURL = URL(string: APIConfig.videoPollingURL) else {
                 let errorMessage = "URL du webhook de polling invalide"
+                print("❌ [Video Polling] URL invalide: \(APIConfig.videoPollingURL)")
                 await MainActor.run {
                     self.generationStatus = .error(errorMessage)
                     self.generationManager.stopGeneration()
@@ -221,6 +289,7 @@ class OpenAIService: ObservableObject {
             var pollingRequest = URLRequest(url: pollingURL)
             pollingRequest.httpMethod = "POST"
             pollingRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            pollingRequest.timeoutInterval = 30.0 // Timeout de 30 secondes pour chaque requête de polling
             
             let pollingBody: [String: Any] = ["jobId": jobId]
             pollingRequest.httpBody = try JSONSerialization.data(withJSONObject: pollingBody)
@@ -230,15 +299,21 @@ class OpenAIService: ObservableObject {
                 
                 guard let httpResponse = response as? HTTPURLResponse else {
                     // Continuer le polling en cas d'erreur de réponse
+                    print("⚠️ [Video Polling] Réponse invalide, nouvelle tentative dans \(Int(pollingInterval))s")
                     try await Task.sleep(nanoseconds: UInt64(pollingInterval * 1_000_000_000))
                     continue
                 }
                 
+                print("📥 [Video Polling] Réponse HTTP \(httpResponse.statusCode)")
+                
                 if httpResponse.statusCode == 200 || httpResponse.statusCode == 201 {
                     // Parser la réponse
                     if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        print("📋 [Video Polling] Réponse JSON: \(json)")
+                        
                         // Vérifier s'il y a une URL vidéo
                         if let videoURL = json["urlVideo"] as? String, !videoURL.isEmpty {
+                            print("✅ [Video Polling] Vidéo générée avec succès: \(videoURL)")
                             await MainActor.run {
                                 self.generationStatus = .success(videoURL)
                                 self.generatedVideoURL = videoURL
@@ -253,6 +328,7 @@ class OpenAIService: ObservableObject {
                         // Vérifier s'il y a un message d'erreur
                         if let errorMsg = json["errorMessage"] as? String, !errorMsg.isEmpty {
                             let errorMessage = errorMsg
+                            print("❌ [Video Polling] Erreur reçue: \(errorMessage)")
                             await MainActor.run {
                                 self.generationStatus = .error(errorMessage)
                                 self.generationManager.stopGeneration()
@@ -265,13 +341,16 @@ class OpenAIService: ObservableObject {
                         
                         // Vérifier l'état
                         if let etat = json["etat"] as? String {
+                            print("📊 [Video Polling] État: \(etat)")
                             // Si l'état indique que c'est terminé mais pas de résultat, continuer à poller
                             if etat.lowercased() == "completed" || etat.lowercased() == "success" {
+                                print("⏳ [Video Polling] Génération terminée mais pas d'URL, nouvelle tentative...")
                                 // Attendre un peu plus et réessayer
                                 try await Task.sleep(nanoseconds: UInt64(pollingInterval * 1_000_000_000))
                                 continue
                             } else if etat.lowercased() == "failed" || etat.lowercased() == "error" {
                                 let errorMessage = json["errorMessage"] as? String ?? "La génération a échoué"
+                                print("❌ [Video Polling] État d'erreur: \(errorMessage)")
                                 await MainActor.run {
                                     self.generationStatus = .error(errorMessage)
                                     self.generationManager.stopGeneration()
@@ -280,13 +359,30 @@ class OpenAIService: ObservableObject {
                                     self.saveState()
                                 }
                                 throw NSError(domain: "OpenAIService", code: -1, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                            } else {
+                                print("⏳ [Video Polling] État: \(etat), génération en cours...")
                             }
+                        } else {
+                            print("⏳ [Video Polling] Pas encore de résultat, génération en cours...")
+                        }
+                    } else {
+                        // Si la réponse n'est pas du JSON valide
+                        if let responseString = String(data: data, encoding: .utf8) {
+                            print("⚠️ [Video Polling] Réponse non-JSON: \(responseString)")
                         }
                     }
+                } else {
+                    print("❌ [Video Polling] Erreur HTTP \(httpResponse.statusCode)")
+                    if let responseString = String(data: data, encoding: .utf8) {
+                        print("📥 [Video Polling] Réponse d'erreur: \(responseString)")
+                    }
                 }
+            } catch let error as URLError where error.code == .timedOut {
+                // En cas de timeout, continuer le polling
+                print("⏱️ [Video Polling] Timeout de la requête, nouvelle tentative...")
             } catch {
                 // En cas d'erreur réseau, continuer le polling
-                print("Erreur lors du polling: \(error.localizedDescription)")
+                print("⚠️ [Video Polling] Erreur: \(error.localizedDescription), nouvelle tentative...")
             }
             
             // Attendre 30 secondes avant le prochain polling
@@ -295,6 +391,7 @@ class OpenAIService: ObservableObject {
         
         // Si on arrive ici, le temps maximum est écoulé
         let errorMessage = "Le temps imparti est écoulé. La génération a pris plus de 8 minutes."
+        print("⏱️ [Video Polling] Timeout final après \(attemptCount) tentatives")
         await MainActor.run {
             self.generationStatus = .error(errorMessage)
             self.generationManager.stopGeneration()
